@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WonderShield // Arena</title>
+<style>
+  :root {
+    --bg: #05070d; --ink: #c8d4e6; --dim: #5b6b82; --blue: #38bdf8; --amber: #ffb020; --red: #ff2d55;
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", Menlo, Consolas, monospace;
+  }
+  * { margin: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); font-family: var(--mono); overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  .hud { position: fixed; inset: 0; pointer-events: none; }
+  .top { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: clamp(14px,2.4vw,26px); }
+  .wordmark { font-size: clamp(15px,2vw,20px); font-weight: 700; letter-spacing: .42em; color: #eaf2ff; }
+  .wordmark b { color: var(--blue); }
+  .sub { font-size: 10px; letter-spacing: .34em; color: var(--dim); text-transform: uppercase; margin-top: 6px; }
+  .telem { text-align: right; font-size: 13px; letter-spacing: .04em; }
+  .telem b { color: #eaf2ff; }
+  .clock { position: absolute; top: clamp(14px,2.4vw,20px); left: 50%; transform: translateX(-50%); text-align: center; }
+  .clock .t { font-size: clamp(26px,4.2vw,40px); font-weight: 700; letter-spacing: .08em; color: var(--amber); font-variant-numeric: tabular-nums; }
+  .clock .t.crit { color: var(--red); }
+  .clock .l { font-size: 9px; letter-spacing: .34em; color: var(--dim); text-transform: uppercase; margin-top: 5px; }
+  .status { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 12px; letter-spacing: .3em; color: var(--dim); text-transform: uppercase; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="hud">
+  <div class="top">
+    <div><div class="wordmark">WONDER<b>SHIELD</b></div><div class="sub">Live Incursion · Arena</div></div>
+    <div class="telem" id="telem"></div>
+  </div>
+  <div class="clock"><div class="t" id="clock">--:--</div><div class="l">Time To Objective</div></div>
+</div>
+<div class="status" id="status">Conectando ao motor...</div>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const WS = params.get('ws') || `ws://${location.hostname || 'localhost'}:8765`;
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const statusEl = document.getElementById('status');
+  const clockEl = document.getElementById('clock'), telemEl = document.getElementById('telem');
+
+  let DPR = 1, VW = 0, VH = 0;
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    VW = window.innerWidth; VH = window.innerHeight;
+    cv.width = Math.floor(VW * DPR); cv.height = Math.floor(VH * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // glow sprites
+  function makeGlow(hex) {
+    const s = 64, c = 32, o = document.createElement('canvas'); o.width = o.height = s;
+    const g = o.getContext('2d'), n = parseInt(hex.slice(1), 16), r = n >> 16 & 255, gg = n >> 8 & 255, b = n & 255;
+    const grad = g.createRadialGradient(c, c, 0, c, c, c);
+    grad.addColorStop(0, 'rgba(255,255,255,.95)'); grad.addColorStop(.25, `rgba(${r},${gg},${b},.9)`);
+    grad.addColorStop(.6, `rgba(${r},${gg},${b},.25)`); grad.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+    g.fillStyle = grad; g.fillRect(0, 0, s, s); return o;
+  }
+  const GLOW = { red: makeGlow('#ff2d55'), blue: makeGlow('#38bdf8'), cyan: makeGlow('#5eead4') };
+
+  // world state
+  let map = null;                       // {w,h,cell,srad,walls,core}
+  let prev = null, cur = null;          // snapshots {reds,blues,...}
+  let prevT = 0, curT = 0;              // timestamps
+  let view = { scale: 1, ox: 0, oy: 0 };
+
+  function fit() {
+    if (!map) return;
+    view.scale = Math.min(VW / map.w, VH / map.h);
+    view.ox = (VW - map.w * view.scale) / 2;
+    view.oy = (VH - map.h * view.scale) / 2;
+  }
+  const sx = (x) => view.ox + x * view.scale;
+  const sy = (y) => view.oy + y * view.scale;
+
+  function connect() {
+    const ws = new WebSocket(WS);
+    ws.onopen = () => { statusEl.style.display = 'none'; };
+    ws.onclose = () => { statusEl.style.display = ''; statusEl.textContent = 'Motor desconectado. Retentando...'; setTimeout(connect, 1200); };
+    ws.onerror = () => { ws.close(); };
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data);
+      if (m.type === 'map') { map = m; fit(); }
+      else if (m.type === 'state') { prev = cur; prevT = curT; cur = m; curT = performance.now(); }
+    };
+  }
+  connect();
+
+  function lerpById(a, b, t) {
+    if (!a) return b;
+    const byId = new Map(a.map((s) => [s.id, s]));
+    return b.map((s) => {
+      const p = byId.get(s.id);
+      if (!p) return s;
+      return { ...s, x: p.x + (s.x - p.x) * t, y: p.y + (s.y - p.y) * t };
+    });
+  }
+
+  function drawSoldier(s, srad) {
+    const r = srad * view.scale, x = sx(s.x), y = sy(s.y);
+    const img = s.team === 'red' ? GLOW.red : GLOW.blue;
+    const col = s.team === 'red' ? '#ff2d55' : '#38bdf8';
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.drawImage(img, x - r * 2.4, y - r * 2.4, r * 4.8, r * 4.8);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, r * 0.42, 0, 6.283); ctx.fill();
+    // cano / mira
+    ctx.strokeStyle = col; ctx.lineWidth = Math.max(2, r * 0.34);
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(s.aim) * r * 1.8, y + Math.sin(s.aim) * r * 1.8); ctx.stroke();
+    if (s.state === 'engage') {
+      ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = Math.max(1, r * 0.16);
+      ctx.beginPath(); ctx.arc(x, y, r * 1.4, 0, 6.283); ctx.stroke();
+    }
+    if (s.flash > 0) {
+      const bx = x + Math.cos(s.aim) * r * 1.8, by = y + Math.sin(s.aim) * r * 1.8;
+      ctx.fillStyle = 'rgba(255,240,200,.9)';
+      ctx.beginPath(); ctx.arc(bx, by, r * 0.6, 0, 6.283); ctx.fill();
+    }
+  }
+
+  function frame() {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#05070d'; ctx.fillRect(0, 0, VW, VH);
+    if (map) {
+      // paredes
+      ctx.fillStyle = '#141d2e'; ctx.strokeStyle = 'rgba(60,82,120,.35)'; ctx.lineWidth = 1;
+      for (const w of map.walls) { const X = sx(w[0]), Y = sy(w[1]), W = w[2] * view.scale, H = w[3] * view.scale; ctx.fillRect(X, Y, W, H); }
+      // nucleo
+      const cx = sx(map.core.x), cy = sy(map.core.y), cr = map.cell * 1.4 * view.scale;
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.drawImage(GLOW.cyan, cx - cr * 2, cy - cr * 2, cr * 4, cr * 4);
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = 'rgba(94,234,212,.5)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(cx, cy, cr, 0, 6.283); ctx.stroke();
+
+      const t = curT ? Math.min(1, (performance.now() - curT) / Math.max(16, curT - prevT)) : 0;
+      if (cur) {
+        // tracers
+        for (const tr of cur.tracers) {
+          ctx.strokeStyle = tr.team === 'blue' ? 'rgba(94,234,212,.9)' : 'rgba(255,120,90,.9)';
+          ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(tr.x1), sy(tr.y1)); ctx.lineTo(sx(tr.x2), sy(tr.y2)); ctx.stroke();
+        }
+        const blues = lerpById(prev && prev.blues, cur.blues, t);
+        const reds = lerpById(prev && prev.reds, cur.reds, t);
+        for (const s of blues) drawSoldier(s, map.srad);
+        for (const s of reds) drawSoldier(s, map.srad);
+
+        // HUD
+        const tl = Math.max(0, cur.time_left | 0);
+        clockEl.textContent = `${(tl / 60) | 0}:${String(tl % 60).padStart(2, '0')}`;
+        clockEl.className = 't' + (tl <= 15 ? ' crit' : '');
+        telemEl.innerHTML = `INCURSION <b>${String(cur.incursion).padStart(2, '0')}</b> · RED <b>${cur.reds.length}</b> · BLUE <b>${cur.blues.length}</b> · HOLDS <b>${cur.holds}</b> · BREACHES <b>${cur.breaches}</b>`;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

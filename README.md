@@ -21,29 +21,48 @@ Tres camadas, com necessidades diferentes, por isso separadas.
 
 Servidor e a verdade, cliente e a vista. Esse e o principio.
 
-## Motor (estado atual)
+## Motor (`engine/`)
 
-Scaffold do motor autoritativo:
+Servidor autoritativo em Python.
 
-- `engine/maze.py`: labirinto por recursive backtracker com braiding (alcas para
-  rotas alternativas). Devolve grade de ocupacao para pathfinding e visada.
-- `engine/sim.py`: mundo autoritativo. Soldados individuais (atacantes e
-  defensores) com posicao, mira, estado e vida proprios. Pathfinding por campo de
-  fluxo (BFS) pelos corredores, combate por visada, objetivo no nucleo ao fim do
-  labirinto, cronometro de incursao de 90s com ondas de reforco.
-- `engine/preview.py`: renderizador de validacao (Pillow) que gera um PNG de um
-  instante da incursao. Nao e o front, e so para conferir que o labirinto e um
-  labirinto e que os soldados se leem como individuos.
+- `maze.py`: labirinto por recursive backtracker com braiding (alcas para rotas
+  alternativas). Devolve grade de ocupacao para pathfinding e visada.
+- `sim.py`: mundo autoritativo. Soldados individuais (atacantes e defensores) com
+  posicao, mira, estado e vida proprios. Pathfinding por campo de fluxo (BFS)
+  pelos corredores, combate por visada, objetivo no nucleo ao fim do labirinto,
+  cronometro de incursao de 90s com ondas de reforco.
+- `server.py`: servidor WebSocket. Roda o loop e transmite `map` (uma vez) e
+  `state` (~20x/s) aos clientes.
+- `preview.py`: renderizador de validacao (Pillow) que gera um PNG de um instante
+  da incursao, para conferir o labirinto e a legibilidade dos soldados.
 
-### Rodar o preview
+## Front (`web/`)
+
+Next.js + React + TypeScript. `components/Arena.tsx` conecta ao WebSocket, recebe
+o mapa uma vez e o estado a cada quadro, e desenha a arena num canvas com
+interpolacao entre quadros. Nao simula nada.
+
+## Rodar tudo
 
 ```bash
+# motor
 pip install -r requirements.txt
+python -m engine.server            # ws://0.0.0.0:8765
+
+# front (outro terminal)
+cd web && npm install && npm run dev
+# abre http://localhost:3000  (aponta para o motor por NEXT_PUBLIC_ARENA_WS)
+```
+
+Validacao rapida so do motor, sem front:
+
+```bash
 python -m engine.preview preview.png 14 7   # saida, segundos simulados, seed
 ```
 
 ## Proximos passos
 
-1. `engine/server.py`: servidor WebSocket que roda o loop e transmite o snapshot.
-2. `web/`: front Next renderizando a arena a partir do stream.
-3. Espinha Supabase e o instrumento de consentimento que amarra o motor.
+1. Espinha Supabase (Postgres, auth por convite, Realtime, RLS) e o instrumento
+   de consentimento que amarra o motor ao alvo e janela autorizados.
+2. Labirinto novo por incursao e afinar a IA de esquadrao (lances, cobertura).
+3. Alimentar a simulacao com eventos reais de um scan consentido.
