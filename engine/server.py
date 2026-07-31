@@ -22,6 +22,7 @@ import time
 
 import websockets
 
+from .consent import Engagement, authorize, training_engagement
 from .sim import World
 
 TICK = 1 / 30           # passo da simulacao
@@ -29,9 +30,12 @@ STATE_HZ = 20           # frequencia de envio do estado
 
 
 class Arena:
-    def __init__(self, seed: int | None = None):
+    def __init__(self, seed: int | None = None, engagement: Engagement | None = None):
         self.world = World(seed=seed if seed is not None else int(time.time()))
         self.clients: set = set()
+        # espinha legal: nenhum scan roda sem autorizacao valida
+        self.engagement = engagement or training_engagement()
+        self.auth = authorize(self.engagement, self.engagement.target_host)
 
     def map_msg(self) -> str:
         w = self.world
@@ -67,6 +71,10 @@ class Arena:
                 self.clients.discard(ws)
 
     async def run(self):
+        if not self.auth.ok:
+            print(f"scan recusado pela checagem de consentimento: {self.auth.reason}")
+            return
+        print(f"consentimento ok: {self.auth.reason} (engagement={self.auth.engagement_id})")
         last_inc = self.world.incursion
         send_every = max(1, round((1 / STATE_HZ) / TICK))
         i = 0

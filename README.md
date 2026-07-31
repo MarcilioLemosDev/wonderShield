@@ -16,8 +16,9 @@ Tres camadas, com necessidades diferentes, por isso separadas.
 - **Motor** (`engine/`): Python. O servidor autoritativo. Gera o labirinto, roda
   a IA de esquadrao, resolve o combate e emite o estado a cada tick. Depois, os
   eventos reais de um scan alimentam essa mesma simulacao.
-- **Espinha** (a definir): Supabase (Postgres, auth por convite, Realtime, RLS)
-  para perfis, engajamentos e o registro de consentimento que amarra o motor.
+- **Espinha** (`supabase/` + `engine/consent.py`): Supabase (Postgres, auth por
+  convite, RLS) para perfis, convites, engajamentos e execucoes. O engajamento e
+  o registro de consentimento que amarra o motor a um alvo e janela autorizados.
 
 Servidor e a verdade, cliente e a vista. Esse e o principio.
 
@@ -60,9 +61,38 @@ Validacao rapida so do motor, sem front:
 python -m engine.preview preview.png 14 7   # saida, segundos simulados, seed
 ```
 
+## Consentimento e banco (`engine/consent.py`, `supabase/`)
+
+Nenhum scan dispara sem autorizacao valida. A regra vive em duas camadas:
+
+- **Motor** (`engine/consent.py`): `authorize(engagement, alvo, agora)` checa
+  status, janela de tempo, escopo de host (com subdominio, sem truque de sufixo)
+  e token. Recusa por padrao. O servidor consulta antes de rodar.
+- **Banco** (`supabase/migrations/0001_platform.sql`): a funcao `authorize_scan`
+  espelha a mesma regra em SQL, e o RLS restringe quem ve o que. Defesa em
+  profundidade.
+
+Alvo de treino da plataforma (Juice Shop) e auto-consentido; alvo real exige um
+engajamento ativo, assinado, dentro da janela.
+
+### Validacao local
+
+```bash
+python -m unittest tests.test_consent           # checagem do motor
+# schema + authorize_scan num Postgres cru:
+#   aplica tests/pg/00_shim.sql, supabase/migrations/0001_platform.sql, tests/pg/10_checks.sql
+```
+
+### Conectar seu Supabase
+
+1. Cria um projeto em supabase.com.
+2. Roda `supabase/migrations/0001_platform.sql` no SQL Editor (o schema `auth` ja
+   existe la, o shim de teste nao entra).
+3. Poe a URL e as chaves em `web/.env.local` (ver `web/.env.example`).
+
 ## Proximos passos
 
-1. Espinha Supabase (Postgres, auth por convite, Realtime, RLS) e o instrumento
-   de consentimento que amarra o motor ao alvo e janela autorizados.
-2. Labirinto novo por incursao e afinar a IA de esquadrao (lances, cobertura).
+1. Paginas da plataforma no `web/`: login por convite, diretorio, criacao de
+   engajamento com o consentimento, atrelado ao Supabase.
+2. Bounding overwatch de verdade na IA de esquadrao (um cobre, outro avanca).
 3. Alimentar a simulacao com eventos reais de um scan consentido.
