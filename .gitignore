@@ -3,7 +3,7 @@ __pycache__/
 *.pyo
 .venv/
 venv/
-engine/_preview.png
+engine/_*.png
 preview.png
 web/node_modules/
 web/.next/

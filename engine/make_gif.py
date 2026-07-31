@@ -14,7 +14,7 @@ import sys
 from PIL import Image
 
 from .preview import render
-from .sim import World
+from .world import World
 
 DT = 1 / 30
 

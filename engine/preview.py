@@ -15,7 +15,7 @@ import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
-from .sim import World
+from .world import World
 
 BG = (5, 7, 13)
 WALL = (26, 37, 58)

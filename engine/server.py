@@ -23,7 +23,7 @@ import time
 import websockets
 
 from .consent import Engagement, authorize, training_engagement
-from .sim import World
+from .world import World
 
 TICK = 1 / 30           # passo da simulacao
 STATE_HZ = 20           # frequencia de envio do estado
