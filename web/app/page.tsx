@@ -1,5 +1,5 @@
-import Arena from "@/components/Arena";
+import { redirect } from "next/navigation";
 
-export default function Home() {
-  return <Arena />;
+export default function Index() {
+  redirect("/home");
 }
