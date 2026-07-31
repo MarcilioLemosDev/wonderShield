@@ -39,6 +39,8 @@ class Soldier:
     alive: bool = True
     hx: float = 0.0       # posto de origem (defensores)
     hy: float = 0.0
+    bound: str = "move"   # 'move' | 'set' — ciclo de bounding overwatch (atacantes)
+    bound_t: float = 0.0
 
 
 @dataclass
@@ -97,6 +99,7 @@ class World:
         self.core = self.cell_center(*self.core_cell)
         self.field_core = self.bfs_field(self.core_cell)
         self.posts = self._pick_posts()
+        self.core_cap = 0.0
 
     # ---- conversoes grade <-> pixel ----
     def cell_center(self, i: int, j: int) -> tuple[float, float]:
@@ -193,8 +196,9 @@ class World:
             self._red_budget -= 1
             gx, gy = self._rng.choice(entries)
             x, y = self.cell_center(gx, gy)
-            self.reds.append(Soldier(self.new_id(), "red", x, y,
-                                     kind=self._rng.choice(ATK_TYPES)))
+            s = Soldier(self.new_id(), "red", x, y, kind=self._rng.choice(ATK_TYPES))
+            s.bound_t = self._rng.uniform(0.0, 2.0)   # desincroniza o ciclo do esquadrao
+            self.reds.append(s)
 
     def spawn_defenders(self):
         for gx, gy in self.posts:
@@ -207,7 +211,7 @@ class World:
         # cada incursao gera um labirinto novo
         self._build_maze(self._base_seed * 1000 + self.incursion)
         self.reds, self.blues, self.tracers = [], [], []
-        self._red_budget = 12 + self.incursion * 4
+        self._red_budget = 5 + self.incursion * 5
         self._wave_clock = 0.0
         self.round_state = "live"
         self.round_timer = 0.0
@@ -329,24 +333,32 @@ class World:
                     self._move(s, 0.0, 0.0, dt)
                 s.flash = max(0.0, s.flash - dt)
                 continue
+            # bounding overwatch: alterna avancar e ficar de tocaia. Em contato,
+            # quem esta "set" para e cobre o corredor enquanto os "move" avancam;
+            # sem inimigo por perto, todos seguem em frente (nada de parar a toa).
+            s.bound_t -= dt
+            if s.bound_t <= 0:
+                if s.bound == "move":
+                    s.bound, s.bound_t = "set", self._rng.uniform(0.9, 1.5)
+                else:
+                    s.bound, s.bound_t = "move", self._rng.uniform(1.6, 2.4)
             d = self.flow_dir(s.x, s.y, self.field_core)
             if d is None:
                 dx, dy = self.core[0] - s.x, self.core[1] - s.y
                 dl = math.hypot(dx, dy) or 1.0
                 d = (dx / dl, dy / dl)
+            covering = s.bound == "set" and en is not None
             s.state = "engage" if clear else "move"
-            spd = rspd * (0.45 if clear else 1.0)   # abranda para engajar, nao para
+            spd = 0.0 if covering else rspd
             self._move(s, d[0] * spd, d[1] * spd, dt)
             if clear:
                 s.cd -= dt
                 if s.cd <= 0:
-                    self.fire(s, en, dt, 0.30)
-                    s.cd = self._rng.uniform(0.6, 1.1)
+                    self.fire(s, en, dt, 0.34 if covering else 0.26)
+                    s.cd = self._rng.uniform(0.5, 0.9) if covering else self._rng.uniform(0.7, 1.2)
             else:
                 s.cd -= dt
             s.flash = max(0.0, s.flash - dt)
-            if math.hypot(self.core[0] - s.x, self.core[1] - s.y) < self.cell * 1.4:
-                breached = True
 
         # defensores: seguram os postos, focam fogo em quem tem visada
         for s in alive_b:
@@ -366,11 +378,16 @@ class World:
                 s.flash = max(0.0, s.flash - dt)
                 continue
             s.state = "engage" if clear else "move"
-            dx, dy = s.hx - s.x, s.hy - s.y
-            dl = math.hypot(dx, dy)
-            tvx = tvy = 0.0
-            if dl > self.cell * 0.5:            # volta ao posto se afastou
-                tvx, tvy = dx / dl * bspd, dy / dl * bspd
+            if self.core_cap > 0.1:
+                # nucleo ameacado: converge para contesta-lo, nao fica no posto
+                cd_ = self.flow_dir(s.x, s.y, self.field_core)
+                tvx, tvy = (cd_[0] * bspd, cd_[1] * bspd) if cd_ else (0.0, 0.0)
+            else:
+                dx, dy = s.hx - s.x, s.hy - s.y
+                dl = math.hypot(dx, dy)
+                tvx = tvy = 0.0
+                if dl > self.cell * 0.5:            # volta ao posto se afastou
+                    tvx, tvy = dx / dl * bspd, dy / dl * bspd
             if clear:
                 s.cd -= dt
                 if s.cd <= 0:
@@ -386,6 +403,17 @@ class World:
         for t in self.tracers:
             t.life -= dt * 5
         self.tracers = [t for t in self.tracers if t.life > 0]
+
+        # nucleo tomado por superioridade numerica no ponto, nao por um toque:
+        # o defensor abate o infiltrado solitario; so uma massa vermelha rompe
+        rn = sum(1 for s in alive_r if math.hypot(self.core[0] - s.x, self.core[1] - s.y) < self.cell * 2.2)
+        bn = sum(1 for s in alive_b if math.hypot(self.core[0] - s.x, self.core[1] - s.y) < self.cell * 4.0)
+        if rn > bn:
+            self.core_cap = min(1.0, self.core_cap + dt * 0.4 * (rn - bn))
+            if self.core_cap >= 1.0:
+                breached = True
+        else:
+            self.core_cap = max(0.0, self.core_cap - dt * 0.6)
 
         # fim de round
         r_left = sum(1 for s in self.reds if s.alive)
@@ -418,7 +446,7 @@ class World:
     def snapshot(self) -> dict:
         return {
             "w": self.W, "h": self.H, "cell": self.cell, "srad": self.srad,
-            "core": {"x": self.core[0], "y": self.core[1]},
+            "core": {"x": self.core[0], "y": self.core[1]}, "core_cap": self.core_cap,
             "incursion": self.incursion, "holds": self.holds, "breaches": self.breaches,
             "state": self.round_state, "last_result": self.last_result,
             "time_left": max(0.0, self.round_time - self.round_timer),

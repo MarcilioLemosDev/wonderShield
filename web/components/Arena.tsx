@@ -33,6 +33,7 @@ type StateMsg = {
   incursion: number;
   holds: number;
   breaches: number;
+  core_cap: number;
 };
 
 const WS_URL = process.env.NEXT_PUBLIC_ARENA_WS ?? "ws://localhost:8765";
@@ -198,6 +199,13 @@ export default function Arena() {
         ctx.beginPath();
         ctx.arc(cx, cy, cr, 0, 6.283);
         ctx.stroke();
+        if (cur && cur.core_cap > 0.01) {
+          ctx.strokeStyle = "#ff2d55";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(cx, cy, cr * 0.8, -Math.PI / 2, -Math.PI / 2 + 6.283 * cur.core_cap);
+          ctx.stroke();
+        }
 
         if (cur) {
           const t = curT ? Math.min(1, (performance.now() - curT) / Math.max(16, curT - prevT)) : 0;

@@ -82,6 +82,10 @@ def render(world: World) -> Image.Image:
     d.ellipse([cx - world.cell * 0.9, cy - world.cell * 0.9,
                cx + world.cell * 0.9, cy + world.cell * 0.9],
               outline=CYAN, width=3)
+    if world.core_cap > 0.01:
+        cr = world.cell * 1.15
+        d.arc([cx - cr, cy - cr, cx + cr, cy + cr], -90, -90 + 360 * world.core_cap,
+              fill=RED, width=5)
 
     # tracers
     for t in world.tracers:
