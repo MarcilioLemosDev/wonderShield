@@ -74,6 +74,7 @@ class World:
         self.round_state = "live"   # 'live' | 'done'
         self.round_timer = 0.0
         self.interlude = 0.0
+        self.last_result = ""       # 'hold' | 'breach' do round encerrado
         self.reds: list[Soldier] = []
         self.blues: list[Soldier] = []
         self.tracers: list[Tracer] = []
@@ -397,6 +398,7 @@ class World:
 
     def end_round(self, result: str):
         self.round_state = "done"
+        self.last_result = result
         if result == "hold":
             self.holds += 1
         else:
@@ -418,7 +420,7 @@ class World:
             "w": self.W, "h": self.H, "cell": self.cell, "srad": self.srad,
             "core": {"x": self.core[0], "y": self.core[1]},
             "incursion": self.incursion, "holds": self.holds, "breaches": self.breaches,
-            "state": self.round_state,
+            "state": self.round_state, "last_result": self.last_result,
             "time_left": max(0.0, self.round_time - self.round_timer),
             "reds": [asdict(s) for s in self.reds if s.alive],
             "blues": [asdict(s) for s in self.blues if s.alive],

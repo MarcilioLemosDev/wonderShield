@@ -109,6 +109,15 @@ def render(world: World) -> Image.Image:
     bc = sum(1 for s in world.blues if s.alive)
     hud = f"INCURSION {world.incursion:02d}    RED {rc}    BLUE {bc}    HOLDS {world.holds}    BREACHES {world.breaches}"
     d.text((world.W - 30, 40), hud, font=small, fill=INK, anchor="rt")
+
+    # banner de desfecho durante o intervalo
+    if world.round_state == "done" and world.last_result:
+        held = world.last_result == "hold"
+        label = "HELD" if held else "BREACH"
+        sub = "OBJECTIVE SECURED" if held else "OBJECTIVE COMPROMISED"
+        col = CYAN if held else RED
+        d.text((world.W / 2, world.H / 2 - 20), label, font=_font(72), fill=col, anchor="mm")
+        d.text((world.W / 2, world.H / 2 + 34), sub, font=small, fill=DIM, anchor="mm")
     return img
 
 
