@@ -54,28 +54,19 @@ class Tracer:
 class World:
     def __init__(self, cols: int = 21, rows: int = 13, seed: int = 1):
         self.cols, self.rows = cols, rows
-        self.open_walls = mz.generate(cols, rows, seed=seed, braid=0.35)
-        self.grid, self.gw, self.gh = mz.to_grid(self.open_walls, cols, rows)
+        self.gw, self.gh = 2 * cols + 1, 2 * rows + 1
 
-        # espaco em pixels (o front escala para a viewport dele)
+        # espaco em pixels (o front escala para a viewport dele); fixo por cols/rows
         self.W, self.H = 1600, 1000
         self.cell = min(self.W / self.gw, self.H / self.gh)
         self.ox = (self.W - self.cell * self.gw) / 2
         self.oy = (self.H - self.cell * self.gh) / 2
         self.srad = self.cell * 0.34   # raio do soldado
 
-        # objetivo: o nucleo no fim (direita), com labirinto em volta
-        cgx = self.gw - 6 if self.is_open(self.gw - 6, self.gh // 2) else self.gw - 4
-        self.core_cell = (cgx, self.gh // 2)
-        if not self.is_open(*self.core_cell):
-            self.core_cell = self.nearest_open(*self.core_cell)
-        self.core = self.cell_center(*self.core_cell)
-        self.field_core = self.bfs_field(self.core_cell)
+        self._base_seed = seed
+        self._rng = random.Random(seed * 7 + 3)
 
-        # postos de defesa: celulas abertas na regiao do objetivo
-        self.posts = self._pick_posts()
-
-        # estado de partida
+        # estado de partida (persiste entre incursoes)
         self.round_time = 90.0
         self.incursion = 1
         self.holds = 0
@@ -83,17 +74,28 @@ class World:
         self.round_state = "live"   # 'live' | 'done'
         self.round_timer = 0.0
         self.interlude = 0.0
-
         self.reds: list[Soldier] = []
         self.blues: list[Soldier] = []
         self.tracers: list[Tracer] = []
         self._next_id = 1
         self._red_budget = 0
         self._wave_clock = 0.0
-        self._rng = random.Random(seed * 7 + 3)
         self.breach_reason = ""
 
         self.start_incursion()
+
+    def _build_maze(self, seed: int):
+        """Gera um labirinto novo e recomputa objetivo, campo de fluxo e postos."""
+        self.open_walls = mz.generate(self.cols, self.rows, seed=seed, braid=0.35)
+        self.grid, self.gw, self.gh = mz.to_grid(self.open_walls, self.cols, self.rows)
+        # objetivo: o nucleo no fim (direita), com labirinto em volta
+        cgx = self.gw - 6 if self.is_open(self.gw - 6, self.gh // 2) else self.gw - 4
+        self.core_cell = (cgx, self.gh // 2)
+        if not self.is_open(*self.core_cell):
+            self.core_cell = self.nearest_open(*self.core_cell)
+        self.core = self.cell_center(*self.core_cell)
+        self.field_core = self.bfs_field(self.core_cell)
+        self.posts = self._pick_posts()
 
     # ---- conversoes grade <-> pixel ----
     def cell_center(self, i: int, j: int) -> tuple[float, float]:
@@ -201,6 +203,8 @@ class World:
             self.blues.append(s)
 
     def start_incursion(self):
+        # cada incursao gera um labirinto novo
+        self._build_maze(self._base_seed * 1000 + self.incursion)
         self.reds, self.blues, self.tracers = [], [], []
         self._red_budget = 12 + self.incursion * 4
         self._wave_clock = 0.0
@@ -239,6 +243,25 @@ class World:
             if target.hp <= 0:
                 target.alive = False
                 target.state = "down"
+
+    def find_cover(self, s: Soldier, tx: float, ty: float):
+        """Celula aberta proxima cuja parede quebra a visada da ameaca (uma quina)."""
+        si, sj = self.to_cell(s.x, s.y)
+        best = None
+        bd = 1e18
+        for dj in range(-3, 4):
+            for di in range(-3, 4):
+                if di == 0 and dj == 0:
+                    continue
+                i, j = si + di, sj + dj
+                if not self.is_open(i, j):
+                    continue
+                cx, cy = self.cell_center(i, j)
+                if self.los_blocked(cx, cy, tx, ty):
+                    d = di * di + dj * dj
+                    if d < bd:
+                        bd, best = d, (cx, cy)
+        return best
 
     def _move(self, s: Soldier, tvx: float, tvy: float, dt: float):
         """Integra velocidade suavizada e desliza ao longo de parede em vez de atravessar."""
@@ -287,20 +310,31 @@ class World:
         bspd = self.cell * 4.0
         breached = False
 
-        # atacantes: avancam pelo labirinto ate o nucleo, atiram em movimento
+        # atacantes: avancam pelo labirinto ate o nucleo; quando levam tinta,
+        # rompem a linha de visada dobrando uma quina em vez de morrer parados
         for s in alive_r:
-            if s.suppress > 0:
-                s.suppress -= dt
             en, ed = self.nearest_enemy(s, alive_b)
             in_range = en is not None and ed < self.cell * 7
             clear = in_range and not self.los_blocked(s.x, s.y, en.x, en.y)
+            if s.suppress > 0 and en is not None:
+                s.suppress -= dt
+                s.state = "hit"
+                cover = self.find_cover(s, en.x, en.y)
+                if cover:
+                    dx, dy = cover[0] - s.x, cover[1] - s.y
+                    dl = math.hypot(dx, dy) or 1.0
+                    self._move(s, dx / dl * rspd, dy / dl * rspd, dt)
+                else:
+                    self._move(s, 0.0, 0.0, dt)
+                s.flash = max(0.0, s.flash - dt)
+                continue
             d = self.flow_dir(s.x, s.y, self.field_core)
             if d is None:
                 dx, dy = self.core[0] - s.x, self.core[1] - s.y
                 dl = math.hypot(dx, dy) or 1.0
                 d = (dx / dl, dy / dl)
             s.state = "engage" if clear else "move"
-            spd = rspd * (0.4 if clear else 1.0)   # abranda para engajar, nao para
+            spd = rspd * (0.45 if clear else 1.0)   # abranda para engajar, nao para
             self._move(s, d[0] * spd, d[1] * spd, dt)
             if clear:
                 s.cd -= dt
@@ -315,11 +349,21 @@ class World:
 
         # defensores: seguram os postos, focam fogo em quem tem visada
         for s in alive_b:
-            if s.suppress > 0:
-                s.suppress -= dt
             en, ed = self.nearest_enemy(s, alive_r)
             in_range = en is not None and ed < self.cell * 8
             clear = in_range and not self.los_blocked(s.x, s.y, en.x, en.y)
+            if s.suppress > 0 and en is not None:
+                s.suppress -= dt
+                s.state = "hit"
+                cover = self.find_cover(s, en.x, en.y)
+                if cover:
+                    dx, dy = cover[0] - s.x, cover[1] - s.y
+                    dl = math.hypot(dx, dy) or 1.0
+                    self._move(s, dx / dl * bspd, dy / dl * bspd, dt)
+                else:
+                    self._move(s, 0.0, 0.0, dt)
+                s.flash = max(0.0, s.flash - dt)
+                continue
             s.state = "engage" if clear else "move"
             dx, dy = s.hx - s.x, s.hy - s.y
             dl = math.hypot(dx, dy)
