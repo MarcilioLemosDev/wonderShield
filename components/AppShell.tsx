@@ -19,6 +19,12 @@ const Icone = {
       <circle cx="12" cy="7" r="4" />
     </svg>
   ),
+  encontros: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M8 3v4M16 3v4M3 11h18" />
+    </svg>
+  ),
   rede: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="10" r="3" />
@@ -34,6 +40,7 @@ const Icone = {
 
 const NAV = [
   { href: "/chat", label: "Bate-papo", ico: Icone.chat },
+  { href: "/encontros", label: "Encontros", ico: Icone.encontros },
   { href: "/rede", label: "Rede", ico: Icone.rede },
   { href: "/perfil", label: "Meu perfil", ico: Icone.perfil },
 ];
@@ -43,6 +50,7 @@ const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: Icone.admin }];
 
 const TITLES: Record<string, string> = {
   "/chat": "Bate-papo",
+  "/encontros": "Encontros",
   "/rede": "Rede",
   "/perfil": "Meu perfil",
   "/admin": "Acesso admin",
