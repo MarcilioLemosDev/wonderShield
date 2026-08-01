@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import Estrelas from "@/components/Estrelas";
+import Energia from "@/components/Energia";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt" className={inter.variable}>
       <body>
         <Estrelas />
+        <Energia />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

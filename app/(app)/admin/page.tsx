@@ -56,6 +56,9 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserRow[] | null>(null);
   const [apps, setApps] = useState<Application[]>([]);
   const [reqs, setReqs] = useState<PasswordRequest[]>([]);
+  const [chatCount, setChatCount] = useState<number | null>(null);
+  const [verHistorico, setVerHistorico] = useState(false);
+  const [meuId, setMeuId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ label: string; handle?: string; password: string } | null>(null);
@@ -67,17 +70,57 @@ export default function AdminPage() {
   const [role, setRole] = useState("member");
   const [password, setPassword] = useState("");
 
+  // edição inline de um usuário da lista
+  const [editId, setEditId] = useState<string | null>(null);
+  const [eNome, setENome] = useState("");
+  const [eHandle, setEHandle] = useState("");
+  const [eIdade, setEIdade] = useState("");
+  const [eProf, setEProf] = useState("");
+
+  const abrirEdicao = (u: UserRow) => {
+    setEditId(u.id);
+    setENome(u.display_name ?? "");
+    setEHandle(u.handle ?? "");
+    setEIdade(u.age ? String(u.age) : "");
+    setEProf(u.profession ?? "");
+    setError("");
+  };
+
+  const salvarEdicao = async (u: UserRow) => {
+    const novoHandle = eHandle.trim().replace(/^@+/, "");
+    // O @ é o login: só mexe se realmente mudou.
+    if (novoHandle && novoHandle !== u.handle) {
+      const r = await patchUser(u.id, { action: "set_handle", handle: novoHandle });
+      if (!r) return;
+    }
+    const r2 = await patchUser(u.id, {
+      action: "update_profile",
+      display_name: eNome,
+      age: eIdade,
+      profession: eProf,
+    });
+    if (r2) setEditId(null);
+  };
+
   useEffect(() => {
     if (ready && session && session.role !== "admin") router.replace("/chat");
   }, [ready, session, router]);
 
+  // Guarda o próprio id para marcar "você" na lista.
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    void supabase.auth.getSession().then(({ data }) => setMeuId(data.session?.user.id ?? null));
+  }, []);
+
   const load = useCallback(async () => {
     setError("");
     const headers = await authHeader();
-    const [u, a, r] = await Promise.all([
+    const [u, a, r, c] = await Promise.all([
       fetch("/api/admin/users", { headers }),
       fetch("/api/admin/applications", { headers }),
       fetch("/api/admin/password-requests", { headers }),
+      fetch("/api/admin/chat", { headers }),
     ]);
     const uj = await u.json();
     if (!u.ok) {
@@ -88,7 +131,59 @@ export default function AdminPage() {
     }
     if (a.ok) setApps(((await a.json()).applications as Application[]) ?? []);
     if (r.ok) setReqs(((await r.json()).requests as PasswordRequest[]) ?? []);
+    if (c.ok) setChatCount(((await c.json()).count as number) ?? 0);
   }, []);
+
+  // Ação genérica sobre um usuário (papel, @, perfil).
+  const patchUser = async (id: string, body: Record<string, unknown>) => {
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(await authHeader()) },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Falha na operação.");
+        return null;
+      }
+      await load();
+      return json;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleRole = async (u: UserRow) => {
+    const alvo = u.role === "admin" ? "member" : "admin";
+    const texto =
+      alvo === "admin"
+        ? `Tornar @${u.handle} administrador? Ganha todos os poderes do painel.`
+        : `Remover o poder de administrador de @${u.handle}?`;
+    if (!window.confirm(texto)) return;
+    await patchUser(u.id, { action: "set_role", role: alvo });
+  };
+
+  const purgeChat = async (scope?: "history") => {
+    const texto =
+      scope === "history"
+        ? "Apagar todo o histórico consolidado, preservando a janela em curso?"
+        : "Apagar TODAS as mensagens do bate-papo? Esta ação é irreversível.";
+    if (!window.confirm(texto)) return;
+    setError("");
+    setBusy(true);
+    try {
+      const url = scope ? `/api/admin/chat?scope=${scope}` : "/api/admin/chat";
+      const res = await fetch(url, { method: "DELETE", headers: await authHeader() });
+      const json = await res.json();
+      if (!res.ok) return setError(json.error ?? "Falha ao limpar o bate-papo.");
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (isSupabaseConfigured) void load();
@@ -328,49 +423,144 @@ senha:     ${created.password}`}
         </form>
       </div>
 
-      {/* lista */}
+      {/* moderação do bate-papo */}
       <div className="card">
-        <div className="card-title">Usuários cadastrados</div>
+        <div className="card-title">Bate-papo</div>
+        <div className="row between" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
+          <div className="muted">
+            {chatCount === null
+              ? "Carregando…"
+              : `${chatCount} ${chatCount === 1 ? "mensagem guardada" : "mensagens guardadas"}.`}
+          </div>
+          <div className="row" style={{ gap: "0.4rem", flexWrap: "wrap" }}>
+            <button className="btn btn-sm" disabled={busy} onClick={() => purgeChat("history")}>
+              Limpar histórico
+            </button>
+            <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => purgeChat()}>
+              Apagar tudo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* lista de usuários — cartões, para caber no celular */}
+      <div className="card">
+        <div className="card-title">Usuários da rede</div>
         {isSupabaseConfigured && !error && !users && <div className="muted">Carregando…</div>}
-        {users && users.length > 0 && (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ textAlign: "left", color: "var(--ink-lo, #8a97a8)" }}>
-                  <th style={{ padding: "0.5rem 0.6rem" }}>@ / login</th>
-                  <th style={{ padding: "0.5rem 0.6rem" }}>Nome</th>
-                  <th style={{ padding: "0.5rem 0.6rem" }}>Papel</th>
-                  <th style={{ padding: "0.5rem 0.6rem" }}>Desde</th>
-                  <th style={{ padding: "0.5rem 0.6rem" }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                    <td style={{ padding: "0.5rem 0.6rem" }}>
-                      <a href={igUrl(u.instagram ?? u.handle)} target="_blank" rel="noreferrer">@{u.handle}</a>
-                    </td>
-                    <td style={{ padding: "0.5rem 0.6rem" }}>{u.display_name}</td>
-                    <td style={{ padding: "0.5rem 0.6rem" }}>
-                      <span className="tag">{u.role}</span>
-                    </td>
-                    <td style={{ padding: "0.5rem 0.6rem" }}>
-                      {new Date(u.created_at).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td style={{ padding: "0.5rem 0.6rem", textAlign: "right" }}>
-                      <div className="row" style={{ gap: "0.4rem", justifyContent: "flex-end" }}>
-                        <button className="btn btn-sm" disabled={busy} onClick={() => resetPassword(u)}>
-                          Resetar senha
-                        </button>
-                        <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => removeUser(u)}>
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="stack" style={{ gap: "0.6rem" }}>
+          {users?.map((u) => (
+            <div key={u.id} className="user-row">
+              {editId === u.id ? (
+                <div className="stack" style={{ gap: "0.7rem" }}>
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>Nome</label>
+                      <input value={eNome} onChange={(e) => setENome(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>@ do Instagram (login)</label>
+                      <input value={eHandle} onChange={(e) => setEHandle(e.target.value)} />
+                      <span className="hint">Mudar o @ muda o login desta pessoa.</span>
+                    </div>
+                    <div className="field">
+                      <label>Idade</label>
+                      <input type="number" value={eIdade} onChange={(e) => setEIdade(e.target.value)} />
+                    </div>
+                    <div className="field">
+                      <label>Profissão</label>
+                      <input value={eProf} onChange={(e) => setEProf(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="row" style={{ gap: "0.4rem" }}>
+                    <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => salvarEdicao(u)}>
+                      Salvar
+                    </button>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => setEditId(null)}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
+                      <b>{u.display_name}</b>
+                      <a href={igUrl(u.instagram ?? u.handle)} target="_blank" rel="noreferrer" className="at-link">
+                        @{u.handle}
+                      </a>
+                      {u.role === "admin" && <span className="tag">admin</span>}
+                      {u.id === meuId && <span className="tag">você</span>}
+                    </div>
+                    <div className="muted" style={{ fontSize: 13 }}>
+                      {u.age ? `${u.age} anos · ` : ""}
+                      {u.profession ? `${u.profession} · ` : ""}
+                      desde {new Date(u.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                  <div className="row" style={{ gap: "0.35rem", flexWrap: "wrap" }}>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => abrirEdicao(u)}>
+                      Editar
+                    </button>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => resetPassword(u)}>
+                      Senha
+                    </button>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => toggleRole(u)}>
+                      {u.role === "admin" ? "Rebaixar" : "Promover"}
+                    </button>
+                    <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => removeUser(u)}>
+                      Excluir
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* histórico de decisões */}
+      <div className="card">
+        <button
+          className="row between"
+          onClick={() => setVerHistorico((v) => !v)}
+          style={{ background: "none", border: "none", color: "inherit", width: "100%", cursor: "pointer", padding: 0 }}
+        >
+          <span className="card-title" style={{ margin: 0 }}>
+            Histórico de decisões
+          </span>
+          <span className="muted">{verHistorico ? "▲" : "▼"}</span>
+        </button>
+        {verHistorico && (
+          <div className="stack" style={{ marginTop: "0.9rem", gap: "0.5rem" }}>
+            {apps.filter((a) => a.status !== "pending").length === 0 &&
+              reqs.filter((r) => r.status !== "pending").length === 0 && (
+                <div className="muted">Nada decidido ainda.</div>
+              )}
+            {apps
+              .filter((a) => a.status !== "pending")
+              .map((a) => (
+                <div key={a.id} className="row between" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+                  <span>
+                    {a.name} · <a href={igUrl(a.instagram)} target="_blank" rel="noreferrer">@{a.instagram}</a>
+                  </span>
+                  <span className="muted">
+                    {a.status === "approved" ? "aprovado" : "recusado"} ·{" "}
+                    {new Date(a.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              ))}
+            {reqs
+              .filter((r) => r.status !== "pending")
+              .map((r) => (
+                <div key={r.id} className="row between" style={{ flexWrap: "wrap", gap: "0.5rem" }}>
+                  <span>
+                    senha · <a href={igUrl(r.identifier)} target="_blank" rel="noreferrer">@{r.identifier}</a>
+                  </span>
+                  <span className="muted">
+                    resolvido · {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                  </span>
+                </div>
+              ))}
           </div>
         )}
       </div>
