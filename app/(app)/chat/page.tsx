@@ -27,6 +27,17 @@ type Message = {
 
 const CAMPOS = "id, author, author_name, body, created_at, reply_to, reply_author_name, reply_excerpt";
 
+// Nome da sala aberta: a rede toda, uma cidade, ou uma tribo.
+function nomeDaSala(sala: string | null, tribos: { id: string; nome: string }[]): string {
+  if (!sala) return "Sala";
+  if (sala === "geral") return "Rede toda";
+  if (sala.startsWith("tribo:")) {
+    const id = sala.slice(6);
+    return tribos.find((t) => t.id === id)?.nome ?? "Tribo";
+  }
+  return nomeDaCidade(sala) ?? "Sala";
+}
+
 // Agrupa o histórico: janelas de 12h no dia corrente, um bloco por dia daí para
 // trás (ver bucketOf). Mais recentes primeiro.
 function groupHistory(msgs: Message[]): { bucket: ChatBucket; messages: Message[] }[] {
@@ -53,11 +64,12 @@ export default function ChatPage() {
   const [respondendo, setRespondendo] = useState<Message | null>(null);
   const [destaque, setDestaque] = useState<string | null>(null);
   const [sala, setSala] = useState<string | null>(null);
+  const [tribos, setTribos] = useState<{ id: string; nome: string }[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLInputElement>(null);
 
   // A sala inicial é a cidade da pessoa: a conversa que interessa é a de perto.
-  // Enquanto o perfil não responde, sala fica nula e nada é carregado.
+  // Junto vêm as tribos a que ela pertence — cada uma vira uma aba.
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -66,9 +78,22 @@ export default function ChatPage() {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id;
       if (!uid) return setSala("geral");
-      const { data } = await supabase.from("profiles").select("city").eq("id", uid).single();
+
+      const [perfil, minhasTribos] = await Promise.all([
+        supabase.from("profiles").select("city").eq("id", uid).single(),
+        supabase.from("tribo_membros").select("tribo_id, tribos(id, nome)").eq("pessoa", uid),
+      ]);
       if (!ativo) return;
-      setSala(data?.city || "geral");
+
+      // O join devolve a tribo aninhada; o formato varia conforme a inferência
+      // do cliente, então normalizamos aqui.
+      const lista = ((minhasTribos.data ?? []) as unknown as {
+        tribos: { id: string; nome: string } | { id: string; nome: string }[] | null;
+      }[])
+        .flatMap((t) => (Array.isArray(t.tribos) ? t.tribos : t.tribos ? [t.tribos] : []))
+        .filter((t) => !!t?.id);
+      setTribos(lista);
+      setSala(perfil.data?.city || "geral");
     })();
     return () => {
       ativo = false;
@@ -238,27 +263,28 @@ export default function ChatPage() {
               {c.nome}
             </button>
           ))}
+          {/* tribos: só aparecem para quem pertence */}
+          {tribos.map((t) => (
+            <button
+              key={t.id}
+              className={`chip tribo${sala === `tribo:${t.id}` ? " ativo" : ""}`}
+              onClick={() => setSala(`tribo:${t.id}`)}
+            >
+              {t.nome}
+            </button>
+          ))}
         </div>
 
         <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
           <div className="card-title" style={{ margin: 0 }}>
-            {sala === "geral" ? "Rede toda" : nomeDaCidade(sala) ?? "Sala"}
+            {nomeDaSala(sala, tribos)}
           </div>
-          <div className="muted" style={{ fontSize: 13 }}>
-            janela atual · {win.label} · fecha em {timeLeft(win)}
+          <div className="janela-info">
+            {win.label} · fecha em {timeLeft(win)}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-            maxHeight: "52vh",
-            overflowY: "auto",
-            padding: "0.4rem 0.1rem",
-          }}
-        >
+        <div className="sala">
           {live.length === 0 && (
             <div className="muted">
               {sala === "geral"
@@ -300,10 +326,9 @@ export default function ChatPage() {
           </div>
         )}
 
-        <form className="row" style={{ gap: "0.5rem", marginTop: "0.6rem" }} onSubmit={send}>
+        <form className="compositor" onSubmit={send}>
           <input
             ref={campoRef}
-            style={{ flex: 1 }}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={respondendo ? `Responder ${respondendo.author_name}…` : "Escreva uma mensagem…"}

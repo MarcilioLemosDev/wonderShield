@@ -92,6 +92,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (typeof body.profession === "string") patch.profession = body.profession.trim() || null;
     if (typeof body.bio === "string") patch.bio = body.bio.trim() || null;
     if (typeof body.city === "string") patch.city = body.city || null;
+    if (typeof body.sign === "string") patch.sign = body.sign || null;
+    if (typeof body.real_name === "string" && body.real_name.trim())
+      patch.real_name = body.real_name.trim();
     if (body.age !== undefined) {
       const age = body.age === "" || body.age === null ? null : Number(body.age);
       if (age !== null && (!Number.isFinite(age) || age < 13 || age > 120)) {
