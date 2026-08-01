@@ -96,6 +96,27 @@ export default function AdminPage() {
     }
   };
 
+  const resetPassword = async (u: UserRow) => {
+    if (!window.confirm(`Gerar uma nova senha para ${u.email || u.handle}?`)) return;
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/users/${u.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(await authHeader()) },
+        body: JSON.stringify({ action: "reset_password" }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error ?? "Falha ao resetar senha.");
+        return;
+      }
+      setCreated({ email: u.email || u.handle, password: json.password });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const removeUser = async (u: UserRow) => {
     if (!window.confirm(`Excluir o usuário ${u.email || u.handle}? Esta ação é irreversível.`)) return;
     setError("");
@@ -238,13 +259,14 @@ Senha:  ${created.password}`}
                       {new Date(u.created_at).toLocaleDateString("pt-BR")}
                     </td>
                     <td style={{ padding: "0.5rem 0.6rem", textAlign: "right" }}>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        disabled={busy}
-                        onClick={() => removeUser(u)}
-                      >
-                        Excluir
-                      </button>
+                      <div className="row" style={{ gap: "0.4rem", justifyContent: "flex-end" }}>
+                        <button className="btn btn-sm" disabled={busy} onClick={() => resetPassword(u)}>
+                          Resetar senha
+                        </button>
+                        <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => removeUser(u)}>
+                          Excluir
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

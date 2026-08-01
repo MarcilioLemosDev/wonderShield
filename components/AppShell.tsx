@@ -14,6 +14,7 @@ const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: "⚙" }];
 const TITLES: Record<string, string> = {
   "/chat": "Bate-papo",
   "/admin": "Acesso admin",
+  "/conta": "Minha conta",
 };
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -40,13 +41,18 @@ export default function AppShell({ children }: { children: ReactNode }) {
             </Link>
           ))}
         </nav>
-        <div className="sidebar-user">
+        <Link
+          href="/conta"
+          className="sidebar-user"
+          style={{ textDecoration: "none", color: "inherit" }}
+          title="Minha conta"
+        >
           <span className="avatar">{initials}</span>
           <div className="who">
             <div className="h">{session?.displayName ?? "Operador"}</div>
             <div className="r">{session?.role ?? "member"}</div>
           </div>
-        </div>
+        </Link>
         <button
           className="btn btn-sm btn-danger"
           style={{ marginTop: "0.6rem" }}
