@@ -5,6 +5,7 @@
 // vivo zera — sem recarregar a página. Histórico é derivado do created_at das
 // mensagens, agrupado por janela.
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -263,7 +264,10 @@ function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
       }}
     >
       <div className="muted" style={{ fontSize: 12, marginBottom: 2 }}>
-        {m.author_name} · {time}
+        <Link href={`/u/${m.author}`} className="msg-author">
+          {m.author_name}
+        </Link>{" "}
+        · {time}
       </div>
       <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.body}</div>
     </div>

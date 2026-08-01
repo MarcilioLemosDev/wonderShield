@@ -6,13 +6,17 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
 
-const NAV = [{ href: "/chat", label: "Bate-papo", ico: "▣" }];
+const NAV = [
+  { href: "/chat", label: "Bate-papo", ico: "▣" },
+  { href: "/perfil", label: "Meu perfil", ico: "◐" },
+];
 
 // Itens visíveis só para administradores.
 const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: "⚙" }];
 
 const TITLES: Record<string, string> = {
   "/chat": "Bate-papo",
+  "/perfil": "Meu perfil",
   "/admin": "Acesso admin",
   "/conta": "Minha conta",
 };
