@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { dentroDoLimite } from "@/lib/throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,10 +31,27 @@ export async function POST(request: Request) {
   if (age !== null && (!Number.isFinite(age) || age < 13 || age > 120))
     return NextResponse.json({ error: "Idade inválida." }, { status: 400 });
 
+  if (!(await dentroDoLimite(admin, { tabela: "applications", minutos: 10, maximo: 20 }))) {
+    return NextResponse.json(
+      { error: "Muitas candidaturas agora há pouco. Tente de novo em alguns minutos." },
+      { status: 429 },
+    );
+  }
+
   const { error } = await admin
     .from("applications")
     .insert({ name, instagram, age, profession });
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (error) {
+    // índice único: já existe uma candidatura pendente para este @
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { error: "Já existe uma candidatura em análise para este @." },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }

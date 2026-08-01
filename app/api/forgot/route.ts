@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { dentroDoLimite } from "@/lib/throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,22 @@ export async function POST(request: Request) {
   const note = String(body.note ?? "").trim() || null;
   if (identifier.length < 2)
     return NextResponse.json({ error: "Informe seu @ do Instagram." }, { status: 400 });
+
+  if (!(await dentroDoLimite(admin, { tabela: "password_requests", minutos: 10, maximo: 20 }))) {
+    return NextResponse.json(
+      { error: "Muitos pedidos agora há pouco. Tente de novo em alguns minutos." },
+      { status: 429 },
+    );
+  }
+
+  // Um pedido pendente por @ já basta — evita encher a fila com repetições.
+  const { data: jaPendente } = await admin
+    .from("password_requests")
+    .select("id")
+    .eq("identifier", identifier)
+    .eq("status", "pending")
+    .maybeSingle();
+  if (jaPendente) return NextResponse.json({ ok: true });
 
   const { error } = await admin.from("password_requests").insert({ identifier, note });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
