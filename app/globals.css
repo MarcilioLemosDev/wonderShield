@@ -331,6 +331,24 @@ table td { font-size: 14.5px; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* ============================================================================
+   Encontros
+   ============================================================================ */
+.encontro {
+  display: flex; align-items: flex-start; gap: 0.9rem; flex-wrap: wrap;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: rgba(255, 255, 255, 0.015);
+  transition: border-color 0.18s, background 0.18s;
+}
+.encontro:hover { border-color: rgba(76, 156, 255, 0.28); background: rgba(76, 156, 255, 0.04); }
+.encontro .titulo { font-size: 16px; font-weight: 600; color: var(--ink-hi); letter-spacing: -0.015em; }
+.encontro .quando {
+  color: var(--blue); font-size: 14px; margin-top: 1px;
+  /* a data é o que importa: primeira coisa que o olho pega depois do nome */
+  text-transform: lowercase;
+}
+
 /* ---- bolhas do bate-papo ---- */
 .bolha {
   position: relative;
