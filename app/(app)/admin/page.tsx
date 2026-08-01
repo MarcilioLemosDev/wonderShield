@@ -293,7 +293,7 @@ senha:     ${created.password}`}
       <div className="card">
         <div className="card-title">Novo usuário</div>
         <form className="stack" onSubmit={createUser}>
-          <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+          <div className="form-grid">
             <div className="field">
               <label>Nome</label>
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="nome" />

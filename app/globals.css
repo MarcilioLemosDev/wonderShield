@@ -233,9 +233,43 @@ button { font-family: inherit; cursor: pointer; }
 }
 .arena-back:hover { color: var(--ink-hi); border-color: rgba(56, 189, 248, 0.5); }
 
-@media (max-width: 760px) {
+/* ---- shell responsivo ---- */
+.hamburger { display: none; }
+.scrim { display: none; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+@media (max-width: 860px) {
   .app { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; align-items: center; overflow-x: auto; }
-  .nav { flex-direction: row; }
-  .sidebar-user, .sidebar-brand .sub { display: none; }
+
+  /* topbar fixa com botão de menu */
+  .topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--bg); padding: 0.8rem 1rem; gap: 0.8rem;
+  }
+  .topbar h1 { font-size: 13px; }
+  .hamburger {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; flex-shrink: 0; font-size: 18px;
+    border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--bg-2); color: var(--ink-hi);
+  }
+
+  /* sidebar vira gaveta deslizante */
+  .sidebar {
+    position: fixed; top: 0; left: 0; z-index: 50;
+    width: 80vw; max-width: 300px; height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.55);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* fundo escuro atrás da gaveta */
+  .scrim.show {
+    display: block; position: fixed; inset: 0; z-index: 40;
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .content { padding: 1rem; }
+  .form-grid { grid-template-columns: 1fr; }
 }
