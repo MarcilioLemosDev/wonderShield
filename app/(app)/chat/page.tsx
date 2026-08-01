@@ -1,15 +1,18 @@
 "use client";
 
-// Bate-papo geral. Uma sala só. A janela de 12h "fecha" sozinha: quando o
-// relógio cruza 00h/12h, o bloco atual é movido para o histórico e a sala ao
-// vivo zera — sem recarregar a página. Histórico é derivado do created_at das
-// mensagens, agrupado por janela.
+// Bate-papo. Uma sala por cidade, mais a geral — encontro é local, então a
+// conversa também é: a pessoa cai na sala da própria cidade ao entrar.
+//
+// A janela de 12h "fecha" sozinha: quando o relógio cruza 00h/12h, o bloco
+// atual vai para o histórico e a sala ao vivo zera, sem recarregar. O histórico
+// é derivado do created_at e comprime por dia (ver bucketOf).
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { bucketOf, currentWindow, type ChatBucket, type ChatWindow } from "@/lib/chatWindow";
+import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 
 type Message = {
   id: string;
@@ -49,8 +52,28 @@ export default function ChatPage() {
   const [openHistory, setOpenHistory] = useState(false);
   const [respondendo, setRespondendo] = useState<Message | null>(null);
   const [destaque, setDestaque] = useState<string | null>(null);
+  const [sala, setSala] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const campoRef = useRef<HTMLInputElement>(null);
+
+  // A sala inicial é a cidade da pessoa: a conversa que interessa é a de perto.
+  // Enquanto o perfil não responde, sala fica nula e nada é carregado.
+  useEffect(() => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    let ativo = true;
+    (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid) return setSala("geral");
+      const { data } = await supabase.from("profiles").select("city").eq("id", uid).single();
+      if (!ativo) return;
+      setSala(data?.city || "geral");
+    })();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   // Pula até a mensagem citada e a destaca por um instante.
   const irPara = useCallback((id: string) => {
@@ -73,21 +96,26 @@ export default function ChatPage() {
   // Carga inicial: mensagens da janela atual (ao vivo) + anteriores (histórico).
   useEffect(() => {
     const supabase = getSupabase();
-    if (!supabase) return;
+    if (!supabase || !sala) return;
     let active = true;
     const w = currentWindow();
     setWin(w);
+    setLive([]);
+    setPast([]);
+    setRespondendo(null);
 
     (async () => {
       const [liveRes, pastRes] = await Promise.all([
         supabase
           .from("messages")
           .select(CAMPOS)
+          .eq("room", sala)
           .gte("created_at", w.start.toISOString())
           .order("created_at", { ascending: true }),
         supabase
           .from("messages")
           .select(CAMPOS)
+          .eq("room", sala)
           .lt("created_at", w.start.toISOString())
           .order("created_at", { ascending: false })
           .limit(1000),
@@ -98,12 +126,12 @@ export default function ChatPage() {
       setPast((pastRes.data ?? []) as Message[]);
     })();
 
-    // Realtime: novas mensagens entram na sala ao vivo.
+    // Realtime: só o que chega nesta sala.
     const channel = supabase
-      .channel("messages-room")
+      .channel(`messages-${sala}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        { event: "INSERT", schema: "public", table: "messages", filter: `room=eq.${sala}` },
         (payload) => {
           const m = payload.new as Message;
           if (new Date(m.created_at) >= currentWindow().start) addLive(m);
@@ -115,7 +143,7 @@ export default function ChatPage() {
       active = false;
       supabase.removeChannel(channel);
     };
-  }, [addLive]);
+  }, [addLive, sala]);
 
   // Rollover: a cada 20s checa se a janela virou. Se virou, consolida o bloco
   // atual no histórico e zera a sala ao vivo.
@@ -163,6 +191,7 @@ export default function ChatPage() {
         author: uid,
         author_name: session?.displayName ?? "Operador",
         body,
+        room: sala ?? "geral",
         reply_to: alvo?.id ?? null,
         reply_author_name: alvo?.author_name ?? null,
         // trecho curto, para a citação sobreviver mesmo se o original sumir
@@ -193,9 +222,27 @@ export default function ChatPage() {
   return (
     <div className="stack">
       <div className="card">
+        <div className="filtros">
+          <button
+            className={`chip${sala === "geral" ? " ativo" : ""}`}
+            onClick={() => setSala("geral")}
+          >
+            Geral
+          </button>
+          {CIDADES.map((c) => (
+            <button
+              key={c.valor}
+              className={`chip${sala === c.valor ? " ativo" : ""}`}
+              onClick={() => setSala(c.valor)}
+            >
+              {c.nome}
+            </button>
+          ))}
+        </div>
+
         <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
           <div className="card-title" style={{ margin: 0 }}>
-            Sala ao vivo
+            {sala === "geral" ? "Rede toda" : nomeDaCidade(sala) ?? "Sala"}
           </div>
           <div className="muted" style={{ fontSize: 13 }}>
             janela atual · {win.label} · fecha em {timeLeft(win)}
@@ -212,7 +259,13 @@ export default function ChatPage() {
             padding: "0.4rem 0.1rem",
           }}
         >
-          {live.length === 0 && <div className="muted">Sala vazia. Comece a conversa 👋</div>}
+          {live.length === 0 && (
+            <div className="muted">
+              {sala === "geral"
+                ? "Ninguém falou nesta janela. Comece você."
+                : `Silêncio em ${nomeDaCidade(sala) ?? "aqui"}. Puxe assunto — é daqui que sai encontro.`}
+            </div>
+          )}
           {live.map((m) => (
             <MessageBubble
               key={m.id}
