@@ -1,9 +1,13 @@
 "use client";
 
-// Sessao do console. Hoje e um mock em localStorage (sem backend ainda). A
-// interface (session, signIn, signOut, ready) e o que as telas consomem, entao
-// trocar por Supabase Auth depois nao toca em nenhuma pagina: so este arquivo.
+// Sessão do console. Usa Supabase Auth quando o projeto está configurado
+// (NEXT_PUBLIC_SUPABASE_URL + ANON_KEY); caso contrário cai num mock em
+// localStorage, para o preview continuar navegável sem backend. As telas só
+// consomem { session, ready, signIn, signOut }, então a troca é transparente.
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { User } from "@supabase/supabase-js";
 
 export type Session = {
   email: string;
@@ -22,25 +26,73 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "wondershield.session";
 
+// Deriva a sessão do console a partir do usuário do Supabase. handle/displayName
+// vêm do user_metadata quando existirem; senão, do prefixo do e-mail.
+function sessionFromUser(user: User): Session {
+  const email = user.email ?? "";
+  const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+  const handle =
+    (typeof meta.handle === "string" && meta.handle) || email.split("@")[0] || "operador";
+  const displayName =
+    (typeof meta.display_name === "string" && meta.display_name) ||
+    handle.charAt(0).toUpperCase() + handle.slice(1);
+  const role = (typeof meta.role === "string" && meta.role) || "member";
+  return { email, handle, displayName, role };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    const supabase = getSupabase();
+
+    // --- modo Supabase ---
+    if (supabase) {
+      let active = true;
+      supabase.auth.getSession().then(({ data }) => {
+        if (!active) return;
+        setSession(data.session ? sessionFromUser(data.session.user) : null);
+        setReady(true);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+        setSession(s ? sessionFromUser(s.user) : null);
+      });
+      return () => {
+        active = false;
+        sub.subscription.unsubscribe();
+      };
+    }
+
+    // --- modo mock (sem backend) ---
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setSession(JSON.parse(raw) as Session);
     } catch {
-      // ignora storage indisponivel
+      // ignora storage indisponível
     }
     setReady(true);
   }, []);
 
   const signIn: AuthContextValue["signIn"] = async (email, password) => {
-    // MOCK: qualquer credencial nao-vazia entra. Substituir por Supabase Auth.
     if (!email.trim() || !password.trim()) {
       return { ok: false, error: "Preencha e-mail e senha." };
     }
+
+    const supabase = getSupabase();
+    if (supabase) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) {
+        return { ok: false, error: "E-mail ou senha inválidos." };
+      }
+      // onAuthStateChange atualiza a sessão.
+      return { ok: true };
+    }
+
+    // MOCK: qualquer credencial não-vazia entra.
     const handle = email.split("@")[0] || "operador";
     const next: Session = {
       email: email.trim(),
@@ -58,6 +110,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = () => {
+    const supabase = getSupabase();
+    if (supabase) {
+      void supabase.auth.signOut();
+      setSession(null);
+      return;
+    }
     try {
       localStorage.removeItem(STORAGE_KEY);
     } catch {
@@ -78,3 +136,5 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error("useAuth precisa do AuthProvider");
   return ctx;
 }
+
+export { isSupabaseConfigured };
