@@ -5,6 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { handleToEmail, sanitizeHandle } from "@/lib/handle";
 import { cidadeValida } from "@/lib/cidades";
+import { signoValido } from "@/lib/estelar";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -62,7 +63,9 @@ export function generatePassword(length = 16): string {
 }
 
 export type NewMember = {
-  name: string;
+  name: string; // nome real — fica com a administração
+  starName: string; // nome estelar — é assim que a rede o conhece
+  sign: string;
   instagram: string;
   age?: number | null;
   profession?: string | null;
@@ -88,7 +91,21 @@ export async function createMember(admin: SupabaseClient, m: NewMember): Promise
   if (!handle) return { ok: false, error: "Informe o @ do Instagram." };
 
   const nome = (m.name ?? "").trim();
-  if (nome.length < 2) return { ok: false, error: "Informe o nome." };
+  if (nome.length < 2) return { ok: false, error: "Informe o nome real." };
+
+  // O nome estelar é a identidade pública — sem ele a pessoa entraria exposta.
+  const estelar = (m.starName ?? "").trim();
+  if (estelar.length < 2) return { ok: false, error: "Dê um nome estelar." };
+
+  if (!signoValido(m.sign)) return { ok: false, error: "Escolha o signo." };
+
+  // Dois membros com o mesmo nome estelar tornariam o jogo impossível.
+  const { data: jaExiste } = await admin
+    .from("profiles")
+    .select("id")
+    .ilike("display_name", estelar)
+    .maybeSingle();
+  if (jaExiste) return { ok: false, error: `Já existe alguém chamado ${estelar}.` };
 
   const idade = m.age == null ? null : Number(m.age);
   if (idade === null || !Number.isFinite(idade) || idade < 13 || idade > 120) {
@@ -109,7 +126,7 @@ export async function createMember(admin: SupabaseClient, m: NewMember): Promise
     email: handleToEmail(handle),
     password,
     email_confirm: true,
-    user_metadata: { display_name: nome, handle, instagram: igClean, role },
+    user_metadata: { display_name: estelar, handle, role },
   });
   if (error) return { ok: false, error: error.message };
 
@@ -119,7 +136,9 @@ export async function createMember(admin: SupabaseClient, m: NewMember): Promise
     await admin
       .from("profiles")
       .update({
-        display_name: nome,
+        display_name: estelar,
+        real_name: nome,
+        sign: m.sign,
         instagram: igClean,
         age: idade,
         profession: profissao,

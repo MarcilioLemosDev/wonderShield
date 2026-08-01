@@ -10,11 +10,16 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
+import { SIGNOS, RELACIONAMENTOS, nomeDoSigno, sugerirNomeEstelar } from "@/lib/estelar";
+import Tribos from "@/components/Tribos";
 
 type UserRow = {
   id: string;
   handle: string;
   display_name: string;
+  real_name: string | null;
+  sign: string | null;
+  relationship: string | null;
   role: string;
   instagram: string | null;
   age: number | null;
@@ -26,6 +31,9 @@ type Application = {
   id: string;
   name: string;
   instagram: string;
+  sign: string | null;
+  relationship: string | null;
+  star_name: string | null;
   age: number | null;
   profession: string | null;
   city: string | null;
@@ -78,6 +86,7 @@ export default function AdminPage() {
   const [verHistorico, setVerHistorico] = useState(false);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [batismo, setBatismo] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ label: string; handle?: string; password: string } | null>(null);
@@ -89,6 +98,8 @@ export default function AdminPage() {
   const [role, setRole] = useState("member");
   const [password, setPassword] = useState("");
   const [novaCidade, setNovaCidade] = useState("");
+  const [estelarNovo, setEstelarNovo] = useState("");
+  const [signoNovo, setSignoNovo] = useState("");
 
   // edição inline de um usuário da lista
   const [editId, setEditId] = useState<string | null>(null);
@@ -97,6 +108,9 @@ export default function AdminPage() {
   const [eIdade, setEIdade] = useState("");
   const [eProf, setEProf] = useState("");
   const [eCidade, setECidade] = useState("");
+  const [eReal, setEReal] = useState("");
+  const [eSigno, setESigno] = useState("");
+  const [eRelac, setERelac] = useState("");
 
   const abrirEdicao = (u: UserRow) => {
     setEditId(u.id);
@@ -105,6 +119,9 @@ export default function AdminPage() {
     setEIdade(u.age ? String(u.age) : "");
     setEProf(u.profession ?? "");
     setECidade(u.city ?? "");
+    setEReal(u.real_name ?? "");
+    setESigno(u.sign ?? "");
+    setERelac(u.relationship ?? "");
     setError("");
   };
 
@@ -121,6 +138,9 @@ export default function AdminPage() {
       age: eIdade,
       profession: eProf,
       city: eCidade,
+      real_name: eReal,
+      sign: eSigno,
+      relationship: eRelac,
     });
     if (r2) setEditId(null);
   };
@@ -221,7 +241,7 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeader()) },
-        body: JSON.stringify({ name, instagram, age, profession, city: novaCidade, role, password: password || undefined }),
+        body: JSON.stringify({ name, star_name: estelarNovo, sign: signoNovo, instagram, age, profession, city: novaCidade, role, password: password || undefined }),
       });
       const json = await res.json();
       if (!res.ok) return setError(json.error ?? "Falha ao criar usuário.");
@@ -231,6 +251,8 @@ export default function AdminPage() {
       setAge("");
       setProfession("");
       setNovaCidade("");
+      setEstelarNovo("");
+      setSignoNovo("");
       setRole("member");
       setPassword("");
       await load();
@@ -247,7 +269,7 @@ export default function AdminPage() {
       const res = await fetch(`/api/admin/applications/${app.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...(await authHeader()) },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, star_name: batismo[app.id] ?? app.star_name ?? "" }),
       });
       const json = await res.json();
       if (!res.ok) return setError(json.error ?? "Falha.");
@@ -384,18 +406,50 @@ export default function AdminPage() {
         {pendingApps.length === 0 && <div className="muted">Nenhuma candidatura pendente.</div>}
         <div className="stack" style={{ gap: "0.5rem" }}>
           {pendingApps.map((a) => (
-            <div key={a.id} className="row" style={{ justifyContent: "space-between", gap: "0.6rem", flexWrap: "wrap" }}>
-              <div>
-                <b>{a.name}</b>{" · "}
-                <a href={igUrl(a.instagram)} target="_blank" rel="noreferrer">@{a.instagram}</a>
-                <span className="muted">
-                  {nomeDaCidade(a.city) ? ` · ${nomeDaCidade(a.city)}` : ""}
+            <div key={a.id} className="user-row" style={{ alignItems: "flex-start" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>
+                  <b>{a.name}</b>{" · "}
+                  <a href={igUrl(a.instagram)} target="_blank" rel="noreferrer" className="at-link">
+                    @{a.instagram}
+                  </a>
+                </div>
+                <div className="muted" style={{ fontSize: 13.5 }}>
+                  {nomeDaCidade(a.city) ?? "sem cidade"}
                   {a.age ? ` · ${a.age} anos` : ""}
                   {a.profession ? ` · ${a.profession}` : ""}
-                </span>
+                  {nomeDoSigno(a.sign) ? ` · ${nomeDoSigno(a.sign)}` : ""}
+                </div>
+
+                {/* batismo: sem nome estelar, ninguém entra */}
+                <div className="row" style={{ gap: "0.4rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
+                  <input
+                    style={{ maxWidth: 200 }}
+                    placeholder="nome estelar"
+                    value={batismo[a.id] ?? a.star_name ?? ""}
+                    onChange={(e) => setBatismo((b) => ({ ...b, [a.id]: e.target.value }))}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    onClick={() =>
+                      setBatismo((b) => ({
+                        ...b,
+                        [a.id]: sugerirNomeEstelar((users ?? []).map((x) => x.display_name)),
+                      }))
+                    }
+                  >
+                    Sortear
+                  </button>
+                </div>
               </div>
-              <div className="row" style={{ gap: "0.4rem" }}>
-                <button className="btn btn-sm btn-primary" disabled={busy} onClick={() => reviewApp(a, "approve")}>
+
+              <div className="row" style={{ gap: "0.4rem", flexWrap: "wrap" }}>
+                <button
+                  className="btn btn-sm btn-primary"
+                  disabled={busy}
+                  onClick={() => reviewApp(a, "approve")}
+                >
                   Aprovar
                 </button>
                 <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => reviewApp(a, "reject")}>
@@ -437,8 +491,38 @@ export default function AdminPage() {
         <form className="stack" onSubmit={createUser}>
           <div className="form-grid">
             <div className="field">
-              <label>Nome</label>
-              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="nome" />
+              <label>Nome estelar *</label>
+              <div className="row" style={{ gap: "0.4rem" }}>
+                <input
+                  required
+                  style={{ flex: 1, minWidth: 0 }}
+                  value={estelarNovo}
+                  onChange={(e) => setEstelarNovo(e.target.value)}
+                  placeholder="Vega"
+                />
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => setEstelarNovo(sugerirNomeEstelar((users ?? []).map((x) => x.display_name)))}
+                >
+                  Sortear
+                </button>
+              </div>
+            </div>
+            <div className="field">
+              <label>Nome real *</label>
+              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="só você vê" />
+            </div>
+            <div className="field">
+              <label>Signo *</label>
+              <select required value={signoNovo} onChange={(e) => setSignoNovo(e.target.value)}>
+                <option value="">Escolha o signo</option>
+                {SIGNOS.map((s) => (
+                  <option key={s.valor} value={s.valor}>
+                    {s.simbolo} {s.nome}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
               <label>@ do Instagram</label>
@@ -481,6 +565,8 @@ export default function AdminPage() {
         </form>
       </div>
 
+      <Tribos pessoas={(users ?? []).map((u) => ({ id: u.id, display_name: u.display_name }))} />
+
       {/* moderação do bate-papo */}
       <div className="card">
         <div className="card-title">Bate-papo</div>
@@ -512,13 +598,56 @@ export default function AdminPage() {
                 <div className="stack" style={{ gap: "0.7rem" }}>
                   <div className="form-grid">
                     <div className="field">
-                      <label>Nome</label>
-                      <input value={eNome} onChange={(e) => setENome(e.target.value)} />
+                      <label>Nome estelar</label>
+                      <div className="row" style={{ gap: "0.4rem" }}>
+                        <input
+                          style={{ flex: 1, minWidth: 0 }}
+                          value={eNome}
+                          onChange={(e) => setENome(e.target.value)}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          onClick={() =>
+                            setENome(sugerirNomeEstelar((users ?? []).map((x) => x.display_name)))
+                          }
+                        >
+                          Sortear
+                        </button>
+                      </div>
+                      <span className="hint">É assim que a rede o conhece.</span>
+                    </div>
+                    <div className="field">
+                      <label>Nome real</label>
+                      <input value={eReal} onChange={(e) => setEReal(e.target.value)} />
+                      <span className="hint">Só você vê.</span>
                     </div>
                     <div className="field">
                       <label>@ do Instagram (login)</label>
                       <input value={eHandle} onChange={(e) => setEHandle(e.target.value)} />
                       <span className="hint">Mudar o @ muda o login desta pessoa.</span>
+                    </div>
+                    <div className="field">
+                      <label>Signo</label>
+                      <select value={eSigno} onChange={(e) => setESigno(e.target.value)}>
+                        <option value="">Sem signo</option>
+                        {SIGNOS.map((s) => (
+                          <option key={s.valor} value={s.valor}>
+                            {s.simbolo} {s.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
+                      <label>Momento</label>
+                      <select value={eRelac} onChange={(e) => setERelac(e.target.value)}>
+                        <option value="">Não informado</option>
+                        {RELACIONAMENTOS.map((r) => (
+                          <option key={r.valor} value={r.valor}>
+                            {r.nome}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="field">
                       <label>Cidade</label>
@@ -554,6 +683,7 @@ export default function AdminPage() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className="row" style={{ gap: "0.5rem", flexWrap: "wrap" }}>
                       <b>{u.display_name}</b>
+                      {u.real_name && <span className="muted">({u.real_name})</span>}
                       <a href={igUrl(u.instagram ?? u.handle)} target="_blank" rel="noreferrer" className="at-link">
                         @{u.handle}
                       </a>
@@ -562,6 +692,7 @@ export default function AdminPage() {
                     </div>
                     <div className="muted" style={{ fontSize: 13 }}>
                       {nomeDaCidade(u.city) ? `${nomeDaCidade(u.city)} · ` : ""}
+                      {nomeDoSigno(u.sign) ? `${nomeDoSigno(u.sign)} · ` : ""}
                       {u.age ? `${u.age} anos · ` : ""}
                       {u.profession ? `${u.profession} · ` : ""}
                       desde {new Date(u.created_at).toLocaleDateString("pt-BR")}

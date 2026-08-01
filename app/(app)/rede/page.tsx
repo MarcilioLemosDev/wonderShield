@@ -7,12 +7,12 @@ import Link from "next/link";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
+import { nomeDoSigno, simboloDoSigno } from "@/lib/estelar";
 
 type Pessoa = {
   id: string;
-  handle: string;
   display_name: string;
-  instagram: string | null;
+  sign: string | null;
   profession: string | null;
   city: string | null;
 };
@@ -30,7 +30,7 @@ export default function RedePage() {
     const carregar = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("id, handle, display_name, instagram, profession, city")
+        .select("id, display_name, sign, profession, city")
         .order("display_name", { ascending: true });
       if (ativo) setPessoas((data ?? []) as Pessoa[]);
     };
@@ -57,7 +57,6 @@ export default function RedePage() {
       if (!termo) return true;
       return (
         p.display_name?.toLowerCase().includes(termo) ||
-        p.handle?.toLowerCase().includes(termo) ||
         (p.profession ?? "").toLowerCase().includes(termo)
       );
     });
@@ -104,7 +103,7 @@ export default function RedePage() {
           className="busca"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por nome, @ ou profissão…"
+          placeholder="Buscar por nome estelar ou profissão…"
         />
       </div>
 
@@ -135,7 +134,7 @@ export default function RedePage() {
               <span style={{ minWidth: 0 }}>
                 <span className="nome">{p.display_name}</span>
                 <span className="sub">
-                  @{p.handle}
+                  {simboloDoSigno(p.sign)} {nomeDoSigno(p.sign) ?? ""}
                   {p.profession ? ` · ${p.profession}` : ""}
                   {nomeDaCidade(p.city) ? ` · ${nomeDaCidade(p.city)}` : ""}
                 </span>

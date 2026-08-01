@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("profiles")
-    .select("id, handle, display_name, role, instagram, age, profession, city, created_at")
+    .select("id, handle, display_name, real_name, sign, role, instagram, age, profession, city, created_at")
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -38,6 +38,8 @@ export async function POST(request: Request) {
   const ageRaw = body.age;
   const result = await createMember(admin, {
     name: String(body.name ?? "").trim(),
+    starName: String(body.star_name ?? "").trim(),
+    sign: typeof body.sign === "string" ? body.sign : "",
     instagram: String(body.instagram ?? "").trim(),
     age: ageRaw === "" || ageRaw == null ? null : Number(ageRaw),
     profession: String(body.profession ?? "").trim() || null,

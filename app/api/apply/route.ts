@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { dentroDoLimite } from "@/lib/throttle";
 import { cidadeValida } from "@/lib/cidades";
+import { signoValido, relacionamentoValido } from "@/lib/estelar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
   const ageRaw = body.age;
   const age = ageRaw === "" || ageRaw == null ? null : Number(ageRaw);
   const city = body.city;
+  const sign = body.sign;
+  const relationship = body.relationship;
 
   // Tudo obrigatório: quem entra precisa estar completo, senão vira um membro
   // invisível na Rede.
@@ -38,6 +41,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Informe sua profissão." }, { status: 400 });
   if (!cidadeValida(city))
     return NextResponse.json({ error: "Escolha sua cidade." }, { status: 400 });
+  if (!signoValido(sign))
+    return NextResponse.json({ error: "Escolha seu signo." }, { status: 400 });
+  if (!relacionamentoValido(relationship))
+    return NextResponse.json({ error: "Diga como você está hoje." }, { status: 400 });
 
   if (!(await dentroDoLimite(admin, { tabela: "applications", minutos: 10, maximo: 20 }))) {
     return NextResponse.json(
@@ -48,7 +55,7 @@ export async function POST(request: Request) {
 
   const { error } = await admin
     .from("applications")
-    .insert({ name, instagram, age, profession, city });
+    .insert({ name, instagram, age, profession, city, sign, relationship });
 
   if (error) {
     // índice único: já existe uma candidatura pendente para este @

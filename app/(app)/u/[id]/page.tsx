@@ -2,18 +2,20 @@
 
 // Perfil de um membro da rede, aberto ao clicar no nome no bate-papo.
 // Só membros logados enxergam (a RLS de profiles exige is_member()).
-// O @ leva ao Instagram — o validador de identidade da rede.
+// Ninguém aparece pelo @ nem pelo nome real: só o nome estelar, o signo e o que
+// a pessoa quis contar. O resto se descobre no encontro.
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { nomeDaCidade } from "@/lib/cidades";
+import { nomeDoSigno, simboloDoSigno, nomeDoRelacionamento } from "@/lib/estelar";
 
 type Profile = {
   id: string;
-  handle: string;
   display_name: string;
-  instagram: string | null;
+  sign: string | null;
+  relationship: string | null;
   age: number | null;
   profession: string | null;
   city: string | null;
@@ -34,7 +36,7 @@ export default function PerfilPublicoPage() {
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, handle, display_name, instagram, age, profession, bio, city, created_at")
+        .select("id, display_name, sign, relationship, age, profession, bio, city, created_at")
         .eq("id", params.id)
         .single();
       if (!active) return;
@@ -62,7 +64,6 @@ export default function PerfilPublicoPage() {
   if (!profile) return <div className="card muted">Carregando…</div>;
 
   const initials = (profile.display_name ?? "OP").slice(0, 2).toUpperCase();
-  const ig = (profile.instagram ?? profile.handle).replace(/^@+/, "");
 
   return (
     <div className="stack">
@@ -75,18 +76,18 @@ export default function PerfilPublicoPage() {
           <span className="avatar">{initials}</span>
           <div className="profile-id">
             <div className="name">{profile.display_name}</div>
-            <a className="at" href={`https://instagram.com/${ig}`} target="_blank" rel="noreferrer">
-              @{ig} ↗
-            </a>
+            <div className="at">
+              {simboloDoSigno(profile.sign)} {nomeDoSigno(profile.sign) ?? "signo reservado"}
+            </div>
             <div className="profile-meta">
               {nomeDaCidade(profile.city) ? (
                 <span className="tag">{nomeDaCidade(profile.city)}</span>
               ) : null}
               {profile.age ? <span className="tag">{profile.age} anos</span> : null}
               {profile.profession ? <span className="tag">{profile.profession}</span> : null}
-              <span className="tag">
-                desde {new Date(profile.created_at).toLocaleDateString("pt-BR")}
-              </span>
+              {nomeDoRelacionamento(profile.relationship) ? (
+                <span className="tag">{nomeDoRelacionamento(profile.relationship)}</span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -97,20 +98,12 @@ export default function PerfilPublicoPage() {
       </div>
 
       <div className="card">
-        <div className="card-title">Encontrar de verdade</div>
+        <div className="card-title">Quem é essa pessoa?</div>
         <div className="muted">
-          A conversa aqui é o começo. Chame no direct e marquem algo presencial — é disso que a rede
-          vive.
+          Você não vai descobrir por aqui. Nomes de verdade, rostos e @ só aparecem quando vocês se
+          encontram — é esse o jogo. Apareça num encontro em{" "}
+          {nomeDaCidade(profile.city) ?? "alguma cidade"} e descubra.
         </div>
-        <a
-          className="btn btn-primary btn-sm"
-          style={{ marginTop: "0.9rem" }}
-          href={`https://instagram.com/${ig}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Abrir no Instagram
-        </a>
       </div>
     </div>
   );

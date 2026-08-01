@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("applications")
-    .select("id, name, instagram, age, profession, city, status, created_at")
+    .select("id, name, instagram, age, profession, city, sign, star_name, status, created_at")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
