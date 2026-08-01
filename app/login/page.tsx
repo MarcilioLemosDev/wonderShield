@@ -31,11 +31,10 @@ export default function LoginPage() {
     <div className="auth">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="shield">🔵</div>
           <div className="wm wordmark">
-            WONDER<b>BLUE</b>
+            wonder<b>blue</b>
           </div>
-          <div className="tg">Acesso restrito · console da rede</div>
+          <div className="tg">Sem anúncios. Só quem foi convidado.</div>
         </div>
         <form className="auth-form" onSubmit={submit}>
           <div className="field">
