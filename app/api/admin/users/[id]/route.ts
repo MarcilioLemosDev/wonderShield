@@ -30,6 +30,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     const { error } = await admin.auth.admin.updateUserById(id, { password });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // senha entregue por DM é sempre provisória
+    await admin.from("profiles").update({ must_change_password: true }).eq("id", id);
     return NextResponse.json({ ok: true, password });
   }
 

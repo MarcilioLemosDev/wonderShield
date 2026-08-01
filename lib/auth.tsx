@@ -15,6 +15,7 @@ export type Session = {
   handle: string;
   displayName: string;
   role: string;
+  mustChangePassword: boolean;
 };
 
 type AuthContextValue = {
@@ -40,16 +41,18 @@ async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Se
     (typeof meta.display_name === "string" && meta.display_name) ||
     handle.charAt(0).toUpperCase() + handle.slice(1);
   let role = "member";
+  let mustChangePassword = false;
 
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("handle, display_name")
+      .select("handle, display_name, must_change_password")
       .eq("id", user.id)
       .single();
     if (data) {
       handle = data.handle ?? handle;
       displayName = data.display_name ?? displayName;
+      mustChangePassword = data.must_change_password === true;
     }
   } catch {
     // sem perfil ainda / RLS: mantém os defaults do metadata
@@ -79,7 +82,7 @@ async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Se
     }
   }
 
-  return { email, handle, displayName, role };
+  return { email, handle, displayName, role, mustChangePassword };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -144,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       handle,
       displayName: handle.charAt(0).toUpperCase() + handle.slice(1),
       role: "member",
+      mustChangePassword: false,
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
