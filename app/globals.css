@@ -19,9 +19,21 @@
   --amber: #ffb020;
   --green: #4ade80;
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --serif-display: "Instrument Serif", Georgia, "Times New Roman", serif;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  --r: 10px;
+  --r: 12px;
   --r-lg: 16px;
+  --pill: 999px;
+
+  /* Profundidade naval — o azul ganha fundo, não só brilho. */
+  --navy: #012169;
+  --navy-2: #103a72;
+  --navy-3: #05152f;
+
+  /* Vidro: véu claro sobre cor, com fio de luz na borda e sombra funda. */
+  --vidro: linear-gradient(150deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.015));
+  --fio: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --sombra: 0 26px 54px -30px rgba(1, 10, 30, 0.9);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,15 +55,26 @@ pre, code { font-family: var(--mono); font-size: 13px; }
 
 h1, h2, h3 { letter-spacing: -0.02em; font-weight: 650; color: var(--ink-hi); }
 
-.wordmark { font-weight: 700; letter-spacing: -0.03em; color: var(--ink-hi); }
-.wordmark b { color: var(--blue); font-weight: 700; }
+/* Serifa de display: títulos de página e marca. O corpo segue em Inter. */
+.topbar h1,
+.wordmark,
+.stat .v,
+.profile-id .name,
+.encontro .titulo {
+  font-family: var(--serif-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.wordmark { color: var(--ink-hi); }
+.wordmark b { color: var(--blue); font-weight: 400; }
 
 /* ---- botões ---- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
   min-height: 42px; padding: 0 1.1rem;
   font-size: 14px; font-weight: 550; letter-spacing: -0.01em;
-  border: 1px solid var(--line); border-radius: var(--r);
+  border: 1px solid var(--line); border-radius: var(--pill);
   background: var(--bg-2); color: var(--ink);
   transition: border-color 0.18s, color 0.18s, background 0.18s, transform 0.08s;
 }
@@ -82,12 +105,19 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 650; color: var(--ink-hi); }
 .field input:disabled { opacity: 0.55; }
 .field .hint { font-size: 12.5px; color: var(--dim); }
 
-/* ---- cartões ---- */
+/* ---- cartões ----
+   O cartão é de vidro: um véu claro por cima de uma cor funda, fio de luz na
+   borda e sombra projetada longe. É o que dá peso de objeto à interface. */
 .card {
-  background: rgba(9, 12, 24, 0.66);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--line-soft);
+  position: relative;
+  background:
+    var(--vidro),
+    linear-gradient(150deg, rgba(1, 33, 105, 0.34), rgba(5, 21, 47, 0.52));
+  backdrop-filter: blur(12px) saturate(135%);
+  -webkit-backdrop-filter: blur(12px) saturate(135%);
+  border: none;
   border-radius: var(--r-lg);
+  box-shadow: var(--sombra), var(--fio);
   padding: 1.35rem;
 }
 .card-title {
@@ -279,6 +309,24 @@ table td { font-size: 14.5px; }
 .msg-author { color: var(--ink-hi); font-weight: 550; }
 .msg-author:hover { color: var(--blue); }
 
+/* contador de pendências no menu */
+.badge {
+  margin-left: auto;
+  min-width: 20px; height: 20px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--pill);
+  background: var(--red); color: #fff;
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+
+/* cartão em destaque (credenciais recém-geradas) */
+.card.destaque {
+  background:
+    var(--vidro),
+    linear-gradient(150deg, rgba(76, 156, 255, 0.22), rgba(5, 21, 47, 0.5));
+  box-shadow: var(--sombra), inset 0 0 0 1px rgba(76, 156, 255, 0.45);
+}
+
 /* aviso de pendência no perfil */
 .aviso {
   display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
@@ -332,6 +380,50 @@ table td { font-size: 14.5px; }
 }
 
 /* ============================================================================
+   Cartão de membro — o objeto da rede
+   Proporção de cartão físico, gradiente próprio, fio de luz e brilho que
+   atravessa. É o que a pessoa reconhece como "meu" dentro do wonderblue.
+   ============================================================================ */
+.cartao-membro {
+  position: relative;
+  width: 100%; max-width: 380px;
+  aspect-ratio: 1.586;
+  border-radius: var(--r-lg);
+  padding: 1.4rem 1.5rem;
+  color: #fff;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  row-gap: 0.55rem;
+  background:
+    linear-gradient(150deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04)),
+    linear-gradient(150deg, var(--navy-2), var(--navy-3));
+  box-shadow: 0 26px 54px -30px rgba(1, 10, 30, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+}
+.cartao-membro .marca {
+  font-family: var(--serif-display);
+  font-size: 17px; opacity: 0.92;
+}
+.cartao-membro .nome {
+  font-family: var(--serif-display);
+  font-size: clamp(24px, 6vw, 32px); line-height: 1.05;
+  align-self: end;
+}
+.cartao-membro .rodape {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  font-size: 13px; opacity: 0.85; gap: 0.6rem;
+}
+/* brilho que corre pelo cartão ao passar o mouse */
+.cartao-membro::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.14) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+.cartao-membro:hover::after { transform: translateX(100%); }
+
+/* ============================================================================
    Encontros
    ============================================================================ */
 .encontro {
@@ -343,6 +435,16 @@ table td { font-size: 14.5px; }
 }
 .encontro:hover { border-color: rgba(76, 156, 255, 0.28); background: rgba(76, 156, 255, 0.04); }
 .encontro .titulo { font-size: 16px; font-weight: 600; color: var(--ink-hi); letter-spacing: -0.015em; }
+.confirmados { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.55rem; }
+.quem-vai {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.2rem 0.6rem 0.2rem 0.2rem; border-radius: var(--pill);
+  background: rgba(255, 255, 255, 0.05); font-size: 13px; color: var(--ink);
+  transition: background 0.15s;
+}
+.quem-vai:hover { background: rgba(76, 156, 255, 0.16); color: var(--ink-hi); }
+.quem-vai .avatar { width: 22px; height: 22px; font-size: 10px; }
+
 .encontro .quando {
   color: var(--blue); font-size: 14px; margin-top: 1px;
   /* a data é o que importa: primeira coisa que o olho pega depois do nome */

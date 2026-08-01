@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
+import { usePendencias } from "@/lib/pendencias";
 
 // Ícones de traço, 18px — desenhados aqui para não puxar biblioteca.
 const Icone = {
@@ -54,7 +55,6 @@ const TITLES: Record<string, string> = {
   "/rede": "Rede",
   "/perfil": "Meu perfil",
   "/admin": "Acesso admin",
-  "/conta": "Minha conta",
 };
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -70,7 +70,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const title = Object.entries(TITLES).find(([h]) => path.startsWith(h))?.[1] ?? "Console";
   const initials = (session?.displayName ?? "OP").slice(0, 2).toUpperCase();
-  const nav = session?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
+  const ehAdmin = session?.role === "admin";
+  const nav = ehAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
+  const pendencias = usePendencias(!!ehAdmin);
   const close = () => setOpen(false);
 
   return (
@@ -92,11 +94,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
             >
               <span className="ico">{n.ico}</span>
               {n.label}
+              {n.href === "/admin" && pendencias > 0 && (
+                <span className="badge" title="Esperando você">
+                  {pendencias}
+                </span>
+              )}
             </Link>
           ))}
         </nav>
         <Link
-          href="/conta"
+          href="/perfil"
           onClick={close}
           className="sidebar-user"
           style={{ textDecoration: "none", color: "inherit" }}

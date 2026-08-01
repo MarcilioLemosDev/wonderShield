@@ -35,6 +35,31 @@ export default function PerfilPage() {
   const [bio, setBio] = useState("");
   const [city, setCity] = useState("");
 
+  // troca de senha (antes numa página separada; agora vive aqui, junto do resto
+  // do "eu" — ter dois lugares para se editar confundia)
+  const [trocandoSenha, setTrocandoSenha] = useState(false);
+  const [senha, setSenha] = useState("");
+  const [confirma, setConfirma] = useState("");
+  const [erroSenha, setErroSenha] = useState("");
+  const [salvandoSenha, setSalvandoSenha] = useState(false);
+
+  const salvarSenha = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErroSenha("");
+    if (senha.length < 8) return setErroSenha("A senha precisa de ao menos 8 caracteres.");
+    if (senha !== confirma) return setErroSenha("As senhas não conferem.");
+    const supabase = getSupabase();
+    if (!supabase) return setErroSenha("Backend indisponível.");
+    setSalvandoSenha(true);
+    const { error } = await supabase.auth.updateUser({ password: senha });
+    setSalvandoSenha(false);
+    if (error) return setErroSenha(error.message);
+    setSenha("");
+    setConfirma("");
+    setTrocandoSenha(false);
+    setMsg("Senha alterada.");
+  };
+
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
@@ -99,6 +124,18 @@ export default function PerfilPage() {
 
   return (
     <div className="stack">
+      {/* o cartão: o objeto que representa a pessoa dentro da rede */}
+      <div className="cartao-membro">
+        <div className="marca">
+          wonder<b style={{ fontWeight: 400, opacity: 0.75 }}>blue</b>
+        </div>
+        <div className="nome">{profile?.display_name ?? session?.displayName}</div>
+        <div className="rodape">
+          <span>{nomeDaCidade(profile?.city) ?? "sem cidade"}</span>
+          <span>{profile?.profession ?? ""}</span>
+        </div>
+      </div>
+
       <div className="card">
         <div className="profile-head">
           <span className="avatar">{initials}</span>
@@ -221,13 +258,55 @@ export default function PerfilPage() {
       )}
 
       <div className="card">
-        <div className="card-title">Conta</div>
-        <div className="row between" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
-          <div className="muted">Trocar a senha de acesso.</div>
-          <Link className="btn btn-sm" href="/conta">
-            Segurança da conta
-          </Link>
-        </div>
+        <div className="card-title">Senha de acesso</div>
+        {!trocandoSenha ? (
+          <div className="row between" style={{ flexWrap: "wrap", gap: "0.6rem" }}>
+            <div className="muted">Sua senha de entrada na rede.</div>
+            <button className="btn btn-sm" onClick={() => setTrocandoSenha(true)}>
+              Trocar senha
+            </button>
+          </div>
+        ) : (
+          <form className="stack" onSubmit={salvarSenha} style={{ maxWidth: 420 }}>
+            <div className="field">
+              <label>Nova senha</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="mínimo 8 caracteres"
+              />
+            </div>
+            <div className="field">
+              <label>Repita a senha</label>
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirma}
+                onChange={(e) => setConfirma(e.target.value)}
+              />
+            </div>
+            {erroSenha && <div className="auth-error">{erroSenha}</div>}
+            <div className="row" style={{ gap: "0.5rem" }}>
+              <button className="btn btn-primary" type="submit" disabled={salvandoSenha}>
+                {salvandoSenha ? "Salvando..." : "Salvar senha"}
+              </button>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => {
+                  setTrocandoSenha(false);
+                  setErroSenha("");
+                  setSenha("");
+                  setConfirma("");
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
