@@ -3,8 +3,8 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 
 export const metadata: Metadata = {
-  title: "WonderShield · Console",
-  description: "Console de operações do WonderShield: engajamentos, rede e a arena.",
+  title: "wonderblue · Console",
+  description: "Console do wonderblue: acesso e bate-papo da rede.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (ready && session) router.replace("/home");
+    if (ready && session) router.replace("/chat");
   }, [ready, session, router]);
 
   const submit = async (e: FormEvent) => {
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setBusy(true);
     const result = await signIn(email, password);
     setBusy(false);
-    if (result.ok) router.replace("/home");
+    if (result.ok) router.replace("/chat");
     else setError(result.error ?? "Falha ao entrar.");
   };
 
@@ -31,11 +31,11 @@ export default function LoginPage() {
     <div className="auth">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="shield">🛡️</div>
+          <div className="shield">🔵</div>
           <div className="wm wordmark">
-            WONDER<b>SHIELD</b>
+            WONDER<b>BLUE</b>
           </div>
-          <div className="tg">Acesso restrito · console de operações</div>
+          <div className="tg">Acesso restrito · console da rede</div>
         </div>
         <form className="auth-form" onSubmit={submit}>
           <div className="field">
@@ -45,7 +45,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="operador@wondershield.dev"
+              placeholder="voce@exemplo.com"
             />
           </div>
           <div className="field">
@@ -64,7 +64,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="auth-note">
-          A rede cresce só por <b>convite</b>. Sem conta? Peça a um membro.
+          Acesso gerenciado pela administração. Sem conta? Fale com um administrador.
         </div>
       </div>
     </div>

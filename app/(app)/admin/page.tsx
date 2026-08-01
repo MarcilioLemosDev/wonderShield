@@ -45,7 +45,7 @@ export default function AdminPage() {
 
   // Guarda de rota: quem não é admin volta para a Home.
   useEffect(() => {
-    if (ready && session && session.role !== "admin") router.replace("/home");
+    if (ready && session && session.role !== "admin") router.replace("/chat");
   }, [ready, session, router]);
 
   const load = useCallback(async () => {
