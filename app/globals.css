@@ -138,6 +138,13 @@ select option { background: #0b1020; color: var(--ink-hi); }
   border-radius: 999px; padding: 0.15rem 0.6rem;
 }
 
+/* quem não ocupa lugar na Rede */
+.tag.invisivel {
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .num { font-variant-numeric: tabular-nums; }
 
 /* ============================================================================

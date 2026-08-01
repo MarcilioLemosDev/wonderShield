@@ -20,6 +20,7 @@ type UserRow = {
   real_name: string | null;
   sign: string | null;
   relationship: string | null;
+  hidden: boolean;
   role: string;
   instagram: string | null;
   age: number | null;
@@ -197,6 +198,14 @@ export default function AdminPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const alternarPresenca = async (u: UserRow) => {
+    const texto = u.hidden
+      ? `Trazer ${u.display_name} de volta à Rede?`
+      : `Tirar ${u.display_name} da Rede? A conta continua funcionando — só deixa de aparecer na lista de pessoas.`;
+    if (!window.confirm(texto)) return;
+    await patchUser(u.id, { action: "set_hidden", hidden: !u.hidden });
   };
 
   const toggleRole = async (u: UserRow) => {
@@ -688,6 +697,7 @@ export default function AdminPage() {
                         @{u.handle}
                       </a>
                       {u.role === "admin" && <span className="tag">admin</span>}
+                      {u.hidden && <span className="tag invisivel">invisível</span>}
                       {u.id === meuId && <span className="tag">você</span>}
                     </div>
                     <div className="muted" style={{ fontSize: 13 }}>
@@ -707,6 +717,9 @@ export default function AdminPage() {
                     </button>
                     <button className="btn btn-sm" disabled={busy} onClick={() => toggleRole(u)}>
                       {u.role === "admin" ? "Rebaixar" : "Promover"}
+                    </button>
+                    <button className="btn btn-sm" disabled={busy} onClick={() => alternarPresenca(u)}>
+                      {u.hidden ? "Mostrar na Rede" : "Ocultar da Rede"}
                     </button>
                     <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => removeUser(u)}>
                       Excluir
