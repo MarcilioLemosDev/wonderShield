@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 
 type Profile = {
   handle: string;
@@ -16,6 +17,7 @@ type Profile = {
   age: number | null;
   profession: string | null;
   bio: string | null;
+  city: string | null;
 };
 
 export default function PerfilPage() {
@@ -31,6 +33,7 @@ export default function PerfilPage() {
   const [profession, setProfession] = useState("");
   const [age, setAge] = useState("");
   const [bio, setBio] = useState("");
+  const [city, setCity] = useState("");
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -42,7 +45,7 @@ export default function PerfilPage() {
       if (!uid) return;
       const { data } = await supabase
         .from("profiles")
-        .select("handle, display_name, instagram, age, profession, bio")
+        .select("handle, display_name, instagram, age, profession, bio, city")
         .eq("id", uid)
         .single();
       if (!active || !data) return;
@@ -52,6 +55,7 @@ export default function PerfilPage() {
       setProfession(p.profession ?? "");
       setAge(p.age ? String(p.age) : "");
       setBio(p.bio ?? "");
+      setCity(p.city ?? "");
     })();
     return () => {
       active = false;
@@ -79,6 +83,7 @@ export default function PerfilPage() {
       profession: profession.trim() || null,
       age: ageNum,
       bio: bio.trim() || null,
+      city: city || null,
     };
     const { error } = await supabase.from("profiles").update(patch).eq("id", uid);
     setSaving(false);
@@ -107,7 +112,9 @@ export default function PerfilPage() {
               @{profile?.instagram ?? handle}
             </a>
             <div className="profile-meta">
-              <span className="tag">{session?.role ?? "member"}</span>
+              {nomeDaCidade(profile?.city) ? (
+                <span className="tag">{nomeDaCidade(profile?.city)}</span>
+              ) : null}
               {profile?.age ? <span className="tag">{profile.age} anos</span> : null}
               {profile?.profession ? <span className="tag">{profile.profession}</span> : null}
             </div>
@@ -145,6 +152,18 @@ export default function PerfilPage() {
                 <label>@ do Instagram</label>
                 <input value={profile?.instagram ?? handle} disabled />
                 <span className="hint">É o seu login — só a administração altera.</span>
+              </div>
+              <div className="field">
+                <label>Cidade</label>
+                <select value={city} onChange={(e) => setCity(e.target.value)}>
+                  <option value="">Não informar</option>
+                  {CIDADES.map((c) => (
+                    <option key={c.valor} value={c.valor}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </select>
+                <span className="hint">É por ela que te encontram na Rede.</span>
               </div>
               <div className="field">
                 <label>Idade</label>
