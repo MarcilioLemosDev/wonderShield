@@ -1,0 +1,59 @@
+// Cliente Supabase com service_role — SÓ no servidor. Nunca importe isto em
+// componentes de cliente: a service_role key ignora RLS e controla o banco
+// inteiro. Usado apenas pelas rotas em app/api/admin/*.
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+export function getSupabaseAdmin(): SupabaseClient | null {
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+export type AdminCheck =
+  | { ok: true; userId: string }
+  | { ok: false; status: number; error: string };
+
+// Autoriza uma requisição: exige um token de sessão válido cujo dono seja
+// admin (role='admin' em public.profiles). Defesa no servidor, independente da UI.
+export async function requireAdmin(request: Request): Promise<AdminCheck> {
+  const admin = getSupabaseAdmin();
+  if (!admin) {
+    return {
+      ok: false,
+      status: 503,
+      error: "Gestão de usuários indisponível: falta SUPABASE_SERVICE_ROLE_KEY no servidor.",
+    };
+  }
+
+  const header = request.headers.get("authorization") ?? "";
+  const token = header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+  if (!token) return { ok: false, status: 401, error: "Sem token de sessão." };
+
+  const { data: userData, error } = await admin.auth.getUser(token);
+  if (error || !userData.user) {
+    return { ok: false, status: 401, error: "Sessão inválida ou expirada." };
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", userData.user.id)
+    .single();
+  if (!profile || profile.role !== "admin") {
+    return { ok: false, status: 403, error: "Acesso restrito a administradores." };
+  }
+
+  return { ok: true, userId: userData.user.id };
+}
+
+// Senha forte aleatória (para quando o admin não informar uma).
+export function generatePassword(length = 16): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*?";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
