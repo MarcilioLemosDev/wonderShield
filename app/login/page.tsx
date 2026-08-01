@@ -39,13 +39,13 @@ export default function LoginPage() {
         </div>
         <form className="auth-form" onSubmit={submit}>
           <div className="field">
-            <label>E-mail</label>
+            <label>@ do Instagram</label>
             <input
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="voce@exemplo.com"
+              placeholder="@seuinsta"
             />
           </div>
           <div className="field">
@@ -63,8 +63,9 @@ export default function LoginPage() {
             {busy ? "Entrando..." : "Entrar"}
           </button>
         </form>
-        <div className="auth-note">
-          Acesso gerenciado pela administração. Sem conta? Fale com um administrador.
+        <div className="auth-note" style={{ display: "flex", justifyContent: "space-between", gap: "1rem" }}>
+          <a href="/esqueci">Esqueci a senha</a>
+          <a href="/aplicar">Quer entrar? Aplique</a>
         </div>
       </div>
     </div>
