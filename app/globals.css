@@ -230,6 +230,51 @@ table td { font-size: 14.5px; }
 .profile-bio { margin-top: 1.2rem; white-space: pre-wrap; line-height: 1.65; color: var(--ink); }
 .profile-bio.empty { color: var(--dim); }
 
+/* linha de usuário no painel (cartão, não tabela — cabe no celular) */
+.user-row {
+  display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: rgba(255, 255, 255, 0.015);
+  transition: border-color 0.18s, background 0.18s;
+}
+.user-row:hover { border-color: rgba(76, 156, 255, 0.28); background: rgba(76, 156, 255, 0.04); }
+.at-link { color: var(--blue); font-size: 14px; }
+.at-link:hover { text-decoration: underline; }
+
+/* ============================================================================
+   Vida: barra de energia no scroll + entrada dos cartões
+   ============================================================================ */
+.energia {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 60;
+  transform-origin: 0 50%; transform: scaleX(0);
+  background: linear-gradient(90deg, var(--blue), #7de2f0 60%, #b98cff);
+  box-shadow: 0 0 12px rgba(76, 156, 255, 0.7);
+  transition: transform 0.12s linear;
+  pointer-events: none;
+}
+
+@keyframes surge {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.content > .stack > .card,
+.content > .stack > .grid > .card {
+  animation: surge 0.42s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+/* escalona a entrada para o conteúdo "montar" em cascata */
+.content > .stack > *:nth-child(1) { animation-delay: 0.02s; }
+.content > .stack > *:nth-child(2) { animation-delay: 0.08s; }
+.content > .stack > *:nth-child(3) { animation-delay: 0.14s; }
+.content > .stack > *:nth-child(4) { animation-delay: 0.2s; }
+.content > .stack > *:nth-child(n + 5) { animation-delay: 0.26s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .content > .stack > .card,
+  .content > .stack > .grid > .card { animation: none; }
+  .energia { transition: none; }
+}
+
 /* nome do autor no bate-papo: leva ao perfil dentro da rede */
 .msg-author { color: var(--ink-hi); font-weight: 550; }
 .msg-author:hover { color: var(--blue); }

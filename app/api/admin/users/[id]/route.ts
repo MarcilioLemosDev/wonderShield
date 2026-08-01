@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin, requireAdmin, generatePassword } from "@/lib/supabaseAdmin";
+import { handleToEmail, sanitizeHandle } from "@/lib/handle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// PATCH /api/admin/users/:id — ações administrativas sobre um usuário.
-// Hoje: reset de senha (gera uma nova se não vier no corpo).
+// PATCH /api/admin/users/:id — ações administrativas sobre um usuário:
+// reset de senha, mudança de papel e edição dos dados do perfil.
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const check = await requireAdmin(request);
   if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
@@ -22,19 +23,88 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ error: "JSON inválido." }, { status: 400 });
   }
 
-  if (body.action !== "reset_password") {
-    return NextResponse.json({ error: "Ação não suportada." }, { status: 400 });
+  if (body.action === "reset_password") {
+    const password = String(body.password ?? "").trim() || generatePassword();
+    if (password.length < 8) {
+      return NextResponse.json({ error: "A senha precisa de ao menos 8 caracteres." }, { status: 400 });
+    }
+    const { error } = await admin.auth.admin.updateUserById(id, { password });
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, password });
   }
 
-  const password = String(body.password ?? "").trim() || generatePassword();
-  if (password.length < 8) {
-    return NextResponse.json({ error: "A senha precisa de ao menos 8 caracteres." }, { status: 400 });
+  if (body.action === "set_role") {
+    const role = body.role === "admin" ? "admin" : "member";
+    // Guarda: não deixar a rede ficar sem nenhum administrador.
+    if (role === "member") {
+      const { count } = await admin
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .eq("role", "admin");
+      if ((count ?? 0) <= 1) {
+        return NextResponse.json(
+          { error: "A rede precisa de ao menos um administrador." },
+          { status: 400 },
+        );
+      }
+    }
+    const { error } = await admin.from("profiles").update({ role }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, role });
   }
 
-  const { error } = await admin.auth.admin.updateUserById(id, { password });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  // Troca o @ — ou seja, o próprio login. Atualiza o e-mail interno no Auth e o
+  // handle/instagram no perfil, mantendo os dois em sincronia.
+  if (body.action === "set_handle") {
+    const handle = sanitizeHandle(String(body.handle ?? ""));
+    if (handle.length < 2) {
+      return NextResponse.json({ error: "@ inválido." }, { status: 400 });
+    }
+    const { data: taken } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("handle", handle)
+      .neq("id", id)
+      .maybeSingle();
+    if (taken) return NextResponse.json({ error: `O @${handle} já está em uso.` }, { status: 400 });
 
-  return NextResponse.json({ ok: true, password });
+    const { error: authErr } = await admin.auth.admin.updateUserById(id, {
+      email: handleToEmail(handle),
+      email_confirm: true,
+    });
+    if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 });
+
+    const { error } = await admin
+      .from("profiles")
+      .update({ handle, instagram: handle })
+      .eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ ok: true, handle });
+  }
+
+  if (body.action === "update_profile") {
+    const patch: Record<string, unknown> = {};
+    if (typeof body.display_name === "string" && body.display_name.trim())
+      patch.display_name = body.display_name.trim();
+    if (typeof body.profession === "string") patch.profession = body.profession.trim() || null;
+    if (typeof body.bio === "string") patch.bio = body.bio.trim() || null;
+    if (body.age !== undefined) {
+      const age = body.age === "" || body.age === null ? null : Number(body.age);
+      if (age !== null && (!Number.isFinite(age) || age < 13 || age > 120)) {
+        return NextResponse.json({ error: "Idade inválida." }, { status: 400 });
+      }
+      patch.age = age;
+    }
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: "Nada para atualizar." }, { status: 400 });
+    }
+    const { error } = await admin.from("profiles").update(patch).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
+  }
+
+  return NextResponse.json({ error: "Ação não suportada." }, { status: 400 });
 }
 
 // DELETE /api/admin/users/:id — exclui um usuário do Auth (o perfil cai por
