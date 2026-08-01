@@ -14,10 +14,14 @@ const NAV = [
   { href: "/profile", label: "Perfil", ico: "◐" },
 ];
 
+// Itens visíveis só para administradores.
+const ADMIN_NAV = [{ href: "/admin", label: "Admin", ico: "⚙" }];
+
 const TITLES: Record<string, string> = {
   "/home": "Home",
   "/network": "Rede de Blues",
   "/engagements": "Engajamentos",
+  "/admin": "Painel Admin",
   "/profile": "Perfil",
 };
 
@@ -28,6 +32,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   const title = Object.entries(TITLES).find(([h]) => path.startsWith(h))?.[1] ?? "Console";
   const initials = (session?.displayName ?? "OP").slice(0, 2).toUpperCase();
+  const nav = session?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
 
   return (
     <div className="app">
@@ -37,7 +42,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <span className="sub">Console</span>
         </div>
         <nav className="nav">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <Link key={n.href} href={n.href} className={path.startsWith(n.href) ? "active" : ""}>
               <span className="ico">{n.ico}</span>
               {n.label}

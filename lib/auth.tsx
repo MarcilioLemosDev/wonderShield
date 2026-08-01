@@ -5,9 +5,9 @@
 // localStorage, para o preview continuar navegável sem backend. As telas só
 // consomem { session, ready, signIn, signOut }, então a troca é transparente.
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
 
 export type Session = {
   email: string;
@@ -26,17 +26,36 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "wondershield.session";
 
-// Deriva a sessão do console a partir do usuário do Supabase. handle/displayName
-// vêm do user_metadata quando existirem; senão, do prefixo do e-mail.
-function sessionFromUser(user: User): Session {
+// Deriva a sessão do console a partir do usuário do Supabase. A tabela
+// public.profiles é a fonte de verdade de handle/display_name/role — é ela que
+// as RLS usam e que define quem é admin. Se a consulta falhar, caímos nos
+// valores do user_metadata / prefixo do e-mail.
+async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Session> {
   const email = user.email ?? "";
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
-  const handle =
+
+  let handle =
     (typeof meta.handle === "string" && meta.handle) || email.split("@")[0] || "operador";
-  const displayName =
+  let displayName =
     (typeof meta.display_name === "string" && meta.display_name) ||
     handle.charAt(0).toUpperCase() + handle.slice(1);
-  const role = (typeof meta.role === "string" && meta.role) || "member";
+  let role = (typeof meta.role === "string" && meta.role) || "member";
+
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("handle, display_name, role")
+      .eq("id", user.id)
+      .single();
+    if (data) {
+      handle = data.handle ?? handle;
+      displayName = data.display_name ?? displayName;
+      role = data.role ?? role;
+    }
+  } catch {
+    // sem perfil ainda / RLS: mantém os defaults do metadata
+  }
+
   return { email, handle, displayName, role };
 }
 
@@ -50,13 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // --- modo Supabase ---
     if (supabase) {
       let active = true;
-      supabase.auth.getSession().then(({ data }) => {
+      supabase.auth.getSession().then(async ({ data }) => {
         if (!active) return;
-        setSession(data.session ? sessionFromUser(data.session.user) : null);
+        const next = data.session ? await sessionFromUser(supabase, data.session.user) : null;
+        if (!active) return;
+        setSession(next);
         setReady(true);
       });
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
-        setSession(s ? sessionFromUser(s.user) : null);
+      const { data: sub } = supabase.auth.onAuthStateChange(async (_event, s) => {
+        const next = s ? await sessionFromUser(supabase, s.user) : null;
+        setSession(next);
       });
       return () => {
         active = false;
