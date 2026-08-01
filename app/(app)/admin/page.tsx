@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 
 type UserRow = {
   id: string;
@@ -18,6 +19,7 @@ type UserRow = {
   instagram: string | null;
   age: number | null;
   profession: string | null;
+  city: string | null;
   created_at: string;
 };
 type Application = {
@@ -26,6 +28,7 @@ type Application = {
   instagram: string;
   age: number | null;
   profession: string | null;
+  city: string | null;
   status: string;
   created_at: string;
 };
@@ -69,6 +72,7 @@ export default function AdminPage() {
   const [profession, setProfession] = useState("");
   const [role, setRole] = useState("member");
   const [password, setPassword] = useState("");
+  const [novaCidade, setNovaCidade] = useState("");
 
   // edição inline de um usuário da lista
   const [editId, setEditId] = useState<string | null>(null);
@@ -76,6 +80,7 @@ export default function AdminPage() {
   const [eHandle, setEHandle] = useState("");
   const [eIdade, setEIdade] = useState("");
   const [eProf, setEProf] = useState("");
+  const [eCidade, setECidade] = useState("");
 
   const abrirEdicao = (u: UserRow) => {
     setEditId(u.id);
@@ -83,6 +88,7 @@ export default function AdminPage() {
     setEHandle(u.handle ?? "");
     setEIdade(u.age ? String(u.age) : "");
     setEProf(u.profession ?? "");
+    setECidade(u.city ?? "");
     setError("");
   };
 
@@ -98,6 +104,7 @@ export default function AdminPage() {
       display_name: eNome,
       age: eIdade,
       profession: eProf,
+      city: eCidade,
     });
     if (r2) setEditId(null);
   };
@@ -198,7 +205,7 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(await authHeader()) },
-        body: JSON.stringify({ name, instagram, age, profession, role, password: password || undefined }),
+        body: JSON.stringify({ name, instagram, age, profession, city: novaCidade, role, password: password || undefined }),
       });
       const json = await res.json();
       if (!res.ok) return setError(json.error ?? "Falha ao criar usuário.");
@@ -207,6 +214,7 @@ export default function AdminPage() {
       setInstagram("");
       setAge("");
       setProfession("");
+      setNovaCidade("");
       setRole("member");
       setPassword("");
       await load();
@@ -343,6 +351,7 @@ senha:     ${created.password}`}
                 <b>{a.name}</b>{" · "}
                 <a href={igUrl(a.instagram)} target="_blank" rel="noreferrer">@{a.instagram}</a>
                 <span className="muted">
+                  {nomeDaCidade(a.city) ? ` · ${nomeDaCidade(a.city)}` : ""}
                   {a.age ? ` · ${a.age} anos` : ""}
                   {a.profession ? ` · ${a.profession}` : ""}
                 </span>
@@ -391,19 +400,30 @@ senha:     ${created.password}`}
           <div className="form-grid">
             <div className="field">
               <label>Nome</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="nome" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="nome" />
             </div>
             <div className="field">
               <label>@ do Instagram</label>
-              <input value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@insta" />
+              <input required value={instagram} onChange={(e) => setInstagram(e.target.value)} placeholder="@insta" />
             </div>
             <div className="field">
-              <label>Idade</label>
-              <input type="number" value={age} onChange={(e) => setAge(e.target.value)} placeholder="opcional" />
+              <label>Cidade *</label>
+              <select value={novaCidade} onChange={(e) => setNovaCidade(e.target.value)} required>
+                <option value="">Escolha a cidade</option>
+                {CIDADES.map((c) => (
+                  <option key={c.valor} value={c.valor}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
-              <label>Profissão</label>
-              <input value={profession} onChange={(e) => setProfession(e.target.value)} placeholder="opcional" />
+              <label>Idade *</label>
+              <input type="number" required value={age} onChange={(e) => setAge(e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Profissão *</label>
+              <input required value={profession} onChange={(e) => setProfession(e.target.value)} />
             </div>
             <div className="field">
               <label>Papel</label>
@@ -463,6 +483,17 @@ senha:     ${created.password}`}
                       <span className="hint">Mudar o @ muda o login desta pessoa.</span>
                     </div>
                     <div className="field">
+                      <label>Cidade</label>
+                      <select value={eCidade} onChange={(e) => setECidade(e.target.value)}>
+                        <option value="">Sem cidade</option>
+                        {CIDADES.map((c) => (
+                          <option key={c.valor} value={c.valor}>
+                            {c.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field">
                       <label>Idade</label>
                       <input type="number" value={eIdade} onChange={(e) => setEIdade(e.target.value)} />
                     </div>
@@ -492,6 +523,7 @@ senha:     ${created.password}`}
                       {u.id === meuId && <span className="tag">você</span>}
                     </div>
                     <div className="muted" style={{ fontSize: 13 }}>
+                      {nomeDaCidade(u.city) ? `${nomeDaCidade(u.city)} · ` : ""}
                       {u.age ? `${u.age} anos · ` : ""}
                       {u.profession ? `${u.profession} · ` : ""}
                       desde {new Date(u.created_at).toLocaleDateString("pt-BR")}

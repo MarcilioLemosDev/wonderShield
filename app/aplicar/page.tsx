@@ -4,11 +4,14 @@
 // se apresenta e o admin valida (olhando o Instagram) antes de criar o acesso.
 import { useState, type FormEvent } from "react";
 
+import { CIDADES } from "@/lib/cidades";
+
 export default function AplicarPage() {
   const [name, setName] = useState("");
   const [instagram, setInstagram] = useState("");
   const [age, setAge] = useState("");
   const [profession, setProfession] = useState("");
+  const [city, setCity] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,7 +24,7 @@ export default function AplicarPage() {
       const res = await fetch("/api/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, instagram, age, profession }),
+        body: JSON.stringify({ name, instagram, age, profession, city }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -57,15 +60,27 @@ export default function AplicarPage() {
           <form className="auth-form" onSubmit={submit}>
             <div className="field">
               <label>Nome</label>
-              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="como te chamam" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="como te chamam" />
             </div>
             <div className="field">
               <label>@ do Instagram</label>
               <input
+                required
                 value={instagram}
                 onChange={(e) => setInstagram(e.target.value)}
                 placeholder="@seuinsta"
               />
+            </div>
+            <div className="field">
+              <label>Cidade</label>
+              <select value={city} onChange={(e) => setCity(e.target.value)} required>
+                <option value="">Escolha sua cidade</option>
+                {CIDADES.map((c) => (
+                  <option key={c.valor} value={c.valor}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
               <label>Idade</label>
@@ -73,17 +88,18 @@ export default function AplicarPage() {
                 type="number"
                 min={13}
                 max={120}
+                required
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
-                placeholder="opcional"
               />
             </div>
             <div className="field">
               <label>Profissão</label>
               <input
+                required
                 value={profession}
                 onChange={(e) => setProfession(e.target.value)}
-                placeholder="opcional"
+                placeholder="o que você faz"
               />
             </div>
             {error && <div className="auth-error">{error}</div>}

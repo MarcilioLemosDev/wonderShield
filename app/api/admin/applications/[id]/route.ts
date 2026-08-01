@@ -22,7 +22,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   const { data: app, error: appErr } = await admin
     .from("applications")
-    .select("id, name, instagram, age, profession, status")
+    .select("id, name, instagram, age, profession, city, status")
     .eq("id", id)
     .single();
   if (appErr || !app) return NextResponse.json({ error: "Candidatura não encontrada." }, { status: 404 });
@@ -43,6 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       instagram: app.instagram,
       age: app.age,
       profession: app.profession,
+      city: app.city,
       role: "member",
     });
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });

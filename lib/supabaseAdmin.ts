@@ -4,6 +4,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 import { handleToEmail, sanitizeHandle } from "@/lib/handle";
+import { cidadeValida } from "@/lib/cidades";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -65,6 +66,7 @@ export type NewMember = {
   instagram: string;
   age?: number | null;
   profession?: string | null;
+  city?: string | null;
   role?: string;
   password?: string;
 };
@@ -74,22 +76,40 @@ export type CreateResult =
   | { ok: false; error: string };
 
 // Cria um usuário no modelo sem e-mail: o @ do Instagram vira o nick (handle) e
-// um e-mail interno invisível. O perfil recebe os campos sociais. A senha é
-// gerada se não vier — o admin a repassa por DM.
+// um e-mail interno invisível. A senha é gerada se não vier — o admin a repassa
+// por DM.
+//
+// Ninguém entra pela metade: nome, @, idade, profissão e cidade são exigidos
+// aqui, na única porta por onde membros nascem (criação manual e aprovação de
+// candidatura). Assim não há como surgir alguém sem cidade, que ficaria fora da
+// Rede sem aparecer para ninguém.
 export async function createMember(admin: SupabaseClient, m: NewMember): Promise<CreateResult> {
   const handle = sanitizeHandle(m.instagram);
-  if (!handle) return { ok: false, error: "Instagram inválido." };
+  if (!handle) return { ok: false, error: "Informe o @ do Instagram." };
+
+  const nome = (m.name ?? "").trim();
+  if (nome.length < 2) return { ok: false, error: "Informe o nome." };
+
+  const idade = m.age == null ? null : Number(m.age);
+  if (idade === null || !Number.isFinite(idade) || idade < 13 || idade > 120) {
+    return { ok: false, error: "Informe uma idade válida (13 a 120)." };
+  }
+
+  const profissao = (m.profession ?? "").trim();
+  if (profissao.length < 2) return { ok: false, error: "Informe a profissão." };
+
+  if (!cidadeValida(m.city)) return { ok: false, error: "Escolha a cidade." };
 
   const igClean = (m.instagram ?? "").trim().replace(/^@+/, "");
   const role = m.role === "admin" ? "admin" : "member";
   const password = (m.password ?? "").trim() || generatePassword();
-  if (password.length < 8) return { ok: false, error: "Senha muito curta." };
+  if (password.length < 8) return { ok: false, error: "A senha precisa de ao menos 8 caracteres." };
 
   const { data, error } = await admin.auth.admin.createUser({
     email: handleToEmail(handle),
     password,
     email_confirm: true,
-    user_metadata: { display_name: m.name || handle, handle, instagram: igClean, role },
+    user_metadata: { display_name: nome, handle, instagram: igClean, role },
   });
   if (error) return { ok: false, error: error.message };
 
@@ -99,10 +119,11 @@ export async function createMember(admin: SupabaseClient, m: NewMember): Promise
     await admin
       .from("profiles")
       .update({
-        display_name: m.name || handle,
+        display_name: nome,
         instagram: igClean,
-        age: m.age ?? null,
-        profession: m.profession ?? null,
+        age: idade,
+        profession: profissao,
+        city: m.city,
         role,
       })
       .eq("id", uid);

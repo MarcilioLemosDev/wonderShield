@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { dentroDoLimite } from "@/lib/throttle";
+import { cidadeValida } from "@/lib/cidades";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,12 +25,19 @@ export async function POST(request: Request) {
   const profession = professionRaw || null;
   const ageRaw = body.age;
   const age = ageRaw === "" || ageRaw == null ? null : Number(ageRaw);
+  const city = body.city;
 
+  // Tudo obrigatório: quem entra precisa estar completo, senão vira um membro
+  // invisível na Rede.
   if (name.length < 2) return NextResponse.json({ error: "Informe seu nome." }, { status: 400 });
   if (instagram.length < 2)
     return NextResponse.json({ error: "Informe seu @ do Instagram." }, { status: 400 });
-  if (age !== null && (!Number.isFinite(age) || age < 13 || age > 120))
-    return NextResponse.json({ error: "Idade inválida." }, { status: 400 });
+  if (age === null || !Number.isFinite(age) || age < 13 || age > 120)
+    return NextResponse.json({ error: "Informe uma idade válida." }, { status: 400 });
+  if (!profession || profession.length < 2)
+    return NextResponse.json({ error: "Informe sua profissão." }, { status: 400 });
+  if (!cidadeValida(city))
+    return NextResponse.json({ error: "Escolha sua cidade." }, { status: 400 });
 
   if (!(await dentroDoLimite(admin, { tabela: "applications", minutos: 10, maximo: 20 }))) {
     return NextResponse.json(
@@ -40,7 +48,7 @@ export async function POST(request: Request) {
 
   const { error } = await admin
     .from("applications")
-    .insert({ name, instagram, age, profession });
+    .insert({ name, instagram, age, profession, city });
 
   if (error) {
     // índice único: já existe uma candidatura pendente para este @

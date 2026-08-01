@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("profiles")
-    .select("id, handle, display_name, role, instagram, age, profession, created_at")
+    .select("id, handle, display_name, role, instagram, age, profession, city, created_at")
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
     instagram: String(body.instagram ?? "").trim(),
     age: ageRaw === "" || ageRaw == null ? null : Number(ageRaw),
     profession: String(body.profession ?? "").trim() || null,
+    city: typeof body.city === "string" ? body.city : null,
     role: body.role === "admin" ? "admin" : "member",
     password: String(body.password ?? "").trim() || undefined,
   });
