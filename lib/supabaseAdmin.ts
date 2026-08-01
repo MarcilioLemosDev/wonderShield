@@ -125,6 +125,8 @@ export async function createMember(admin: SupabaseClient, m: NewMember): Promise
         profession: profissao,
         city: m.city,
         role,
+        // a senha vai por DM: nasce provisória e precisa ser trocada na entrada
+        must_change_password: true,
       })
       .eq("id", uid);
   }

@@ -55,6 +55,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const password = generatePassword();
     const { error } = await admin.auth.admin.updateUserById(user.id, { password });
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // provisória: a pessoa troca ao entrar
+    await admin.from("profiles").update({ must_change_password: true }).eq("id", user.id);
     await markDone();
     return NextResponse.json({ ok: true, status: "done", handle: req.identifier, password });
   }
