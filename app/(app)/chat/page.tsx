@@ -9,7 +9,7 @@ import Link from "next/link";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { currentWindow, windowOf, type ChatWindow } from "@/lib/chatWindow";
+import { bucketOf, currentWindow, type ChatBucket, type ChatWindow } from "@/lib/chatWindow";
 
 type Message = {
   id: string;
@@ -17,19 +17,25 @@ type Message = {
   author_name: string;
   body: string;
   created_at: string;
+  reply_to: string | null;
+  reply_author_name: string | null;
+  reply_excerpt: string | null;
 };
 
-// Agrupa mensagens antigas em janelas de 12h, mais recentes primeiro.
-function groupHistory(msgs: Message[]): { window: ChatWindow; messages: Message[] }[] {
-  const byKey = new Map<string, { window: ChatWindow; messages: Message[] }>();
+const CAMPOS = "id, author, author_name, body, created_at, reply_to, reply_author_name, reply_excerpt";
+
+// Agrupa o histórico: janelas de 12h no dia corrente, um bloco por dia daí para
+// trás (ver bucketOf). Mais recentes primeiro.
+function groupHistory(msgs: Message[]): { bucket: ChatBucket; messages: Message[] }[] {
+  const byKey = new Map<string, { bucket: ChatBucket; messages: Message[] }>();
   for (const m of msgs) {
-    const w = windowOf(new Date(m.created_at));
-    const bucket = byKey.get(w.key) ?? { window: w, messages: [] };
-    bucket.messages.push(m);
-    byKey.set(w.key, bucket);
+    const b = bucketOf(new Date(m.created_at));
+    const found = byKey.get(b.key) ?? { bucket: b, messages: [] };
+    found.messages.push(m);
+    byKey.set(b.key, found);
   }
   return Array.from(byKey.values()).sort(
-    (a, b) => b.window.start.getTime() - a.window.start.getTime(),
+    (a, b) => b.bucket.start.getTime() - a.bucket.start.getTime(),
   );
 }
 
@@ -41,7 +47,24 @@ export default function ChatPage() {
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [openHistory, setOpenHistory] = useState(false);
+  const [respondendo, setRespondendo] = useState<Message | null>(null);
+  const [destaque, setDestaque] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const campoRef = useRef<HTMLInputElement>(null);
+
+  // Pula até a mensagem citada e a destaca por um instante.
+  const irPara = useCallback((id: string) => {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setDestaque(id);
+    setTimeout(() => setDestaque((d) => (d === id ? null : d)), 1600);
+  }, []);
+
+  const responder = useCallback((m: Message) => {
+    setRespondendo(m);
+    campoRef.current?.focus();
+  }, []);
 
   const addLive = useCallback((m: Message) => {
     setLive((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
@@ -59,12 +82,12 @@ export default function ChatPage() {
       const [liveRes, pastRes] = await Promise.all([
         supabase
           .from("messages")
-          .select("id, author, author_name, body, created_at")
+          .select(CAMPOS)
           .gte("created_at", w.start.toISOString())
           .order("created_at", { ascending: true }),
         supabase
           .from("messages")
-          .select("id, author, author_name, body, created_at")
+          .select(CAMPOS)
           .lt("created_at", w.start.toISOString())
           .order("created_at", { ascending: false })
           .limit(1000),
@@ -131,14 +154,26 @@ export default function ChatPage() {
       return;
     }
 
+    const alvo = respondendo;
+    setRespondendo(null);
+
     const { data, error } = await supabase
       .from("messages")
-      .insert({ author: uid, author_name: session?.displayName ?? "Operador", body })
-      .select("id, author, author_name, body, created_at")
+      .insert({
+        author: uid,
+        author_name: session?.displayName ?? "Operador",
+        body,
+        reply_to: alvo?.id ?? null,
+        reply_author_name: alvo?.author_name ?? null,
+        // trecho curto, para a citação sobreviver mesmo se o original sumir
+        reply_excerpt: alvo ? alvo.body.slice(0, 140) : null,
+      })
+      .select(CAMPOS)
       .single();
     if (error) {
       setError(error.message);
       setText(body);
+      setRespondendo(alvo);
       return;
     }
     if (data) addLive(data as Message);
@@ -179,19 +214,46 @@ export default function ChatPage() {
         >
           {live.length === 0 && <div className="muted">Sala vazia. Comece a conversa 👋</div>}
           {live.map((m) => (
-            <MessageBubble key={m.id} m={m} mine={m.author_name === session?.displayName} />
+            <MessageBubble
+              key={m.id}
+              m={m}
+              mine={m.author_name === session?.displayName}
+              destacada={destaque === m.id}
+              onResponder={responder}
+              onIrPara={irPara}
+            />
           ))}
           <div ref={endRef} />
         </div>
 
         {error && <div className="auth-error">{error}</div>}
 
+        {respondendo && (
+          <div className="respondendo">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="muted" style={{ fontSize: 12 }}>
+                respondendo {respondendo.author_name}
+              </div>
+              <div className="trecho">{respondendo.body}</div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setRespondendo(null)}
+              aria-label="Cancelar resposta"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <form className="row" style={{ gap: "0.5rem", marginTop: "0.6rem" }} onSubmit={send}>
           <input
+            ref={campoRef}
             style={{ flex: 1 }}
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Escreva uma mensagem…"
+            placeholder={respondendo ? `Responder ${respondendo.author_name}…` : "Escreva uma mensagem…"}
             maxLength={2000}
           />
           <button className="btn btn-primary" type="submit">
@@ -217,7 +279,7 @@ export default function ChatPage() {
             Histórico consolidado
           </span>
           <span className="muted">
-            {history.length} {history.length === 1 ? "janela" : "janelas"} {openHistory ? "▲" : "▼"}
+            {history.length} {history.length === 1 ? "bloco" : "blocos"} {openHistory ? "▲" : "▼"}
           </span>
         </button>
 
@@ -225,9 +287,9 @@ export default function ChatPage() {
           <div className="stack" style={{ marginTop: "0.7rem" }}>
             {history.length === 0 && <div className="muted">Nenhuma janela fechada ainda.</div>}
             {history.map((h) => (
-              <details key={h.window.key} className="card" style={{ padding: "0.7rem 0.9rem" }}>
+              <details key={h.bucket.key} className="card" style={{ padding: "0.7rem 0.9rem" }}>
                 <summary style={{ cursor: "pointer" }}>
-                  <b>{h.window.label}</b>{" "}
+                  <b>{h.bucket.label}</b>{" "}
                   <span className="muted">· {h.messages.length} mensagens</span>
                 </summary>
                 <div className="stack" style={{ marginTop: "0.6rem", gap: "0.4rem" }}>
@@ -247,22 +309,40 @@ export default function ChatPage() {
   );
 }
 
-function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
+function MessageBubble({
+  m,
+  mine,
+  destacada,
+  onResponder,
+  onIrPara,
+}: {
+  m: Message;
+  mine: boolean;
+  destacada?: boolean;
+  onResponder?: (m: Message) => void;
+  onIrPara?: (id: string) => void;
+}) {
   const time = new Date(m.created_at).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
   });
   return (
     <div
-      style={{
-        alignSelf: mine ? "flex-end" : "flex-start",
-        maxWidth: "80%",
-        background: mine ? "rgba(53,153,255,0.16)" : "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 10,
-        padding: "0.45rem 0.65rem",
-      }}
+      id={`msg-${m.id}`}
+      className={`bolha${mine ? " minha" : ""}${destacada ? " destacada" : ""}`}
     >
+      {m.reply_excerpt && (
+        <button
+          type="button"
+          className="citacao"
+          onClick={() => m.reply_to && onIrPara?.(m.reply_to)}
+          title="Ver a mensagem original"
+        >
+          <span className="quem">{m.reply_author_name ?? "mensagem"}</span>
+          <span className="trecho">{m.reply_excerpt}</span>
+        </button>
+      )}
+
       <div className="muted" style={{ fontSize: 12, marginBottom: 2 }}>
         <Link href={`/u/${m.author}`} className="msg-author">
           {m.author_name}
@@ -270,6 +350,12 @@ function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
         · {time}
       </div>
       <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{m.body}</div>
+
+      {onResponder && (
+        <button type="button" className="responder" onClick={() => onResponder(m)}>
+          responder
+        </button>
+      )}
     </div>
   );
 }
