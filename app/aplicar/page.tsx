@@ -38,11 +38,10 @@ export default function AplicarPage() {
     <div className="auth">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="shield">🔵</div>
           <div className="wm wordmark">
-            WONDER<b>BLUE</b>
+            wonder<b>blue</b>
           </div>
-          <div className="tg">Uma rede sem anúncios · presença de verdade</div>
+          <div className="tg">A conversa aqui vira encontro lá fora.</div>
         </div>
 
         {done ? (

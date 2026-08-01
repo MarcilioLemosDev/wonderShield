@@ -36,11 +36,10 @@ export default function EsqueciPage() {
     <div className="auth">
       <div className="auth-card">
         <div className="auth-brand">
-          <div className="shield">🔵</div>
           <div className="wm wordmark">
-            WONDER<b>BLUE</b>
+            wonder<b>blue</b>
           </div>
-          <div className="tg">Recuperar acesso</div>
+          <div className="tg">Vamos recuperar seu acesso.</div>
         </div>
 
         {done ? (

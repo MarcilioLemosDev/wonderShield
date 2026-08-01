@@ -6,13 +6,33 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
 
+// Ícones de traço, 18px — desenhados aqui para não puxar biblioteca.
+const Icone = {
+  chat: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.8-.8L3 20.5l1.4-4.1A8.4 8.4 0 0 1 12 3.5a8.4 8.4 0 0 1 9 8Z" />
+    </svg>
+  ),
+  perfil: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  admin: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3 4 6.5v5c0 4.6 3.4 8.9 8 9.5 4.6-.6 8-4.9 8-9.5v-5Z" />
+    </svg>
+  ),
+};
+
 const NAV = [
-  { href: "/chat", label: "Bate-papo", ico: "▣" },
-  { href: "/perfil", label: "Meu perfil", ico: "◐" },
+  { href: "/chat", label: "Bate-papo", ico: Icone.chat },
+  { href: "/perfil", label: "Meu perfil", ico: Icone.perfil },
 ];
 
 // Itens visíveis só para administradores.
-const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: "⚙" }];
+const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: Icone.admin }];
 
 const TITLES: Record<string, string> = {
   "/chat": "Bate-papo",
@@ -41,8 +61,10 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="app">
       <aside className={`sidebar${open ? " open" : ""}`}>
         <div className="sidebar-brand wordmark">
-          WONDER<b>BLUE</b>
-          <span className="sub">Console</span>
+          wonder<b>blue</b>
+          <span className="sub">
+            {session?.role === "admin" ? "administração" : "sua rede"}
+          </span>
         </div>
         <nav className="nav">
           {nav.map((n) => (
@@ -88,15 +110,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
       <div className="main">
         <div className="topbar">
-          <button
-            className="hamburger"
-            aria-label="Abrir menu"
-            onClick={() => setOpen(true)}
-          >
-            ☰
+          <button className="hamburger" aria-label="Abrir menu" onClick={() => setOpen(true)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+            </svg>
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="crumb">wonderblue · Console</div>
             <h1>{title}</h1>
           </div>
         </div>
