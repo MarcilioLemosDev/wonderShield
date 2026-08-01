@@ -8,6 +8,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { resolveLoginEmail } from "@/lib/handle";
 
 export type Session = {
   email: string;
@@ -104,11 +105,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = getSupabase();
     if (supabase) {
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email: resolveLoginEmail(email),
         password,
       });
       if (error) {
-        return { ok: false, error: "E-mail ou senha inválidos." };
+        return { ok: false, error: "@ ou senha inválidos." };
       }
       // onAuthStateChange atualiza a sessão.
       return { ok: true };
