@@ -14,7 +14,7 @@ export default function Index() {
 
   useEffect(() => {
     if (!ready) return;
-    router.replace(session ? "/home" : "/login");
+    router.replace(session ? "/chat" : "/login");
   }, [ready, session, router]);
 
   return <div className="arena-status">Carregando…</div>;

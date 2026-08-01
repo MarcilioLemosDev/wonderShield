@@ -6,23 +6,14 @@ import type { ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
 
-const NAV = [
-  { href: "/home", label: "Home", ico: "▚" },
-  { href: "/network", label: "Rede", ico: "◈" },
-  { href: "/engagements", label: "Engajamentos", ico: "▤" },
-  { href: "/arena", label: "Arena", ico: "◎" },
-  { href: "/profile", label: "Perfil", ico: "◐" },
-];
+const NAV = [{ href: "/chat", label: "Bate-papo", ico: "▣" }];
 
 // Itens visíveis só para administradores.
-const ADMIN_NAV = [{ href: "/admin", label: "Admin", ico: "⚙" }];
+const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: "⚙" }];
 
 const TITLES: Record<string, string> = {
-  "/home": "Home",
-  "/network": "Rede de Blues",
-  "/engagements": "Engajamentos",
-  "/admin": "Painel Admin",
-  "/profile": "Perfil",
+  "/chat": "Bate-papo",
+  "/admin": "Acesso admin",
 };
 
 export default function AppShell({ children }: { children: ReactNode }) {
@@ -38,7 +29,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="app">
       <aside className="sidebar">
         <div className="sidebar-brand wordmark">
-          WONDER<b>SHIELD</b>
+          WONDER<b>BLUE</b>
           <span className="sub">Console</span>
         </div>
         <nav className="nav">
@@ -71,7 +62,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <div className="main">
         <div className="topbar">
           <div>
-            <div className="crumb">WonderShield · Console</div>
+            <div className="crumb">wonderblue · Console</div>
             <h1>{title}</h1>
           </div>
         </div>
