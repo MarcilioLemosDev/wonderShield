@@ -42,3 +42,41 @@ export function windowOf(d: Date): ChatWindow {
 export function currentWindow(): ChatWindow {
   return windowOf(new Date());
 }
+
+// ---------------------------------------------------------------------------
+// Consolidação por dia
+//
+// Enquanto o dia está em curso, faz sentido ver as metades separadas: a janela
+// ao vivo e, quando já passou do meio-dia, a janela da manhã que fechou. Quando
+// as duas janelas de um dia se completam — ou seja, o dia virou —, aquele dia
+// deixa de ser duas entradas e passa a ser uma só. É assim que o histórico vai
+// comprimindo: por janela no dia corrente, por dia daí para trás.
+// ---------------------------------------------------------------------------
+export type ChatBucket = {
+  key: string;
+  label: string;
+  start: Date; // usado só para ordenar
+};
+
+// Identificador do dia (relógio de São Paulo), ex. "2026-08-01".
+function dayKey(d: Date): string {
+  const { y, m, day } = spParts(d);
+  return `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// Em qual "gaveta" uma mensagem cai: a janela de 12h, se for de hoje; o dia
+// inteiro, se for de qualquer dia anterior (já consolidado).
+export function bucketOf(d: Date, now: Date = new Date()): ChatBucket {
+  const w = windowOf(d);
+  if (dayKey(d) === dayKey(now)) {
+    return { key: w.key, label: w.label, start: w.start };
+  }
+
+  const { y, m, day } = spParts(d);
+  const dd = String(day).padStart(2, "0");
+  const mm = String(m + 1).padStart(2, "0");
+  // Início do dia (00h de SP) em UTC real — só para ordenação.
+  const start = new Date(Date.UTC(y, m, day, 0, 0, 0, 0) - TZ_OFFSET_HOURS * 3600_000);
+
+  return { key: dayKey(d), label: `${dd}/${mm}/${y} · dia completo`, start };
+}
