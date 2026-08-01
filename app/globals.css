@@ -279,6 +279,49 @@ table td { font-size: 14.5px; }
 .msg-author { color: var(--ink-hi); font-weight: 550; }
 .msg-author:hover { color: var(--blue); }
 
+/* ============================================================================
+   Rede — filtro por cidade e lista de pessoas
+   ============================================================================ */
+.filtros { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-bottom: 0.9rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.4rem 0.85rem; border-radius: 999px;
+  font-size: 14px; font-family: inherit;
+  border: 1px solid var(--line); background: transparent; color: var(--dim);
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.chip:hover { color: var(--ink-hi); border-color: rgba(76, 156, 255, 0.4); }
+.chip.ativo {
+  color: var(--ink-hi); border-color: var(--blue);
+  background: rgba(76, 156, 255, 0.14);
+}
+.chip .qtd { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.chip.ativo .qtd { color: var(--blue); }
+
+.busca {
+  width: 100%; font-family: inherit; font-size: 15px;
+  background: rgba(4, 6, 12, 0.6); color: var(--ink-hi);
+  border: 1px solid var(--line); border-radius: var(--r);
+  padding: 0.6rem 0.8rem;
+}
+.busca:focus { outline: none; border-color: var(--blue); }
+.busca::placeholder { color: #566478; }
+
+.pessoas { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.5rem; }
+.pessoa {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding: 0.7rem 0.8rem; border-radius: var(--r);
+  border: 1px solid var(--line-soft); background: rgba(255, 255, 255, 0.015);
+  transition: border-color 0.15s, background 0.15s;
+}
+.pessoa:hover { border-color: rgba(76, 156, 255, 0.32); background: rgba(76, 156, 255, 0.05); }
+.pessoa .avatar { width: 40px; height: 40px; font-size: 14px; }
+.pessoa .nome { display: block; color: var(--ink-hi); font-weight: 550; }
+.pessoa .sub {
+  display: block; font-size: 13px; color: var(--dim);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
 /* ---- bolhas do bate-papo ---- */
 .bolha {
   position: relative;

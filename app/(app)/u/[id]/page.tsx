@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { nomeDaCidade } from "@/lib/cidades";
 
 type Profile = {
   id: string;
@@ -15,6 +16,7 @@ type Profile = {
   instagram: string | null;
   age: number | null;
   profession: string | null;
+  city: string | null;
   bio: string | null;
   created_at: string;
 };
@@ -32,7 +34,7 @@ export default function PerfilPublicoPage() {
     (async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, handle, display_name, instagram, age, profession, bio, created_at")
+        .select("id, handle, display_name, instagram, age, profession, bio, city, created_at")
         .eq("id", params.id)
         .single();
       if (!active) return;
@@ -77,6 +79,9 @@ export default function PerfilPublicoPage() {
               @{ig} ↗
             </a>
             <div className="profile-meta">
+              {nomeDaCidade(profile.city) ? (
+                <span className="tag">{nomeDaCidade(profile.city)}</span>
+              ) : null}
               {profile.age ? <span className="tag">{profile.age} anos</span> : null}
               {profile.profession ? <span className="tag">{profile.profession}</span> : null}
               <span className="tag">
