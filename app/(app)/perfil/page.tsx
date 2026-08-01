@@ -76,6 +76,7 @@ export default function PerfilPage() {
       return setError("Idade inválida.");
     }
     if (name.trim().length < 2) return setError("Informe seu nome.");
+    if (!city) return setError("Escolha sua cidade — é por ela que a rede se encontra.");
 
     setSaving(true);
     const patch = {
@@ -126,6 +127,15 @@ export default function PerfilPage() {
           )}
         </div>
 
+        {!editing && profile && !profile.city && (
+          <div className="aviso">
+            Falta sua <b>cidade</b> — sem ela você não aparece na Rede.{" "}
+            <button className="btn btn-sm btn-primary" onClick={() => setEditing(true)}>
+              Definir agora
+            </button>
+          </div>
+        )}
+
         {!editing && (
           <div className={`profile-bio${profile?.bio ? "" : " empty"}`}>
             {profile?.bio || "Sem bio ainda. Conte um pouco sobre você."}
@@ -154,16 +164,16 @@ export default function PerfilPage() {
                 <span className="hint">É o seu login — só a administração altera.</span>
               </div>
               <div className="field">
-                <label>Cidade</label>
+                <label>Cidade *</label>
                 <select value={city} onChange={(e) => setCity(e.target.value)}>
-                  <option value="">Não informar</option>
+                  <option value="">Escolha sua cidade</option>
                   {CIDADES.map((c) => (
                     <option key={c.valor} value={c.valor}>
                       {c.nome}
                     </option>
                   ))}
                 </select>
-                <span className="hint">É por ela que te encontram na Rede.</span>
+                <span className="hint">Obrigatório — é por ela que te encontram na Rede.</span>
               </div>
               <div className="field">
                 <label>Idade</label>

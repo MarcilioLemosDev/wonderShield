@@ -279,6 +279,15 @@ table td { font-size: 14.5px; }
 .msg-author { color: var(--ink-hi); font-weight: 550; }
 .msg-author:hover { color: var(--blue); }
 
+/* aviso de pendência no perfil */
+.aviso {
+  display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+  margin-top: 1.1rem; padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 176, 32, 0.3); border-radius: var(--r);
+  background: rgba(255, 176, 32, 0.08); color: var(--ink);
+}
+.aviso b { color: var(--amber); }
+
 /* ============================================================================
    Rede — filtro por cidade e lista de pessoas
    ============================================================================ */

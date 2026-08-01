@@ -55,11 +55,28 @@ async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Se
     // sem perfil ainda / RLS: mantém os defaults do metadata
   }
 
+  // Caminho principal: a função (a coluna role é revogada para membros).
+  let resolvido = false;
   try {
     const { data, error } = await supabase.rpc("my_role");
-    if (!error && typeof data === "string") role = data;
+    if (!error && typeof data === "string") {
+      role = data;
+      resolvido = true;
+    }
   } catch {
-    // função ainda não aplicada: segue como membro
+    // segue para o caminho alternativo
+  }
+
+  // Alternativa: bancos onde a migration de blindagem ainda não rodou, ou o
+  // cache de esquema do PostgREST ainda não enxerga a função. Sem isso, um
+  // administrador legítimo apareceria como membro comum.
+  if (!resolvido) {
+    try {
+      const { data } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      if (data && typeof data.role === "string") role = data.role;
+    } catch {
+      // permanece 'member'
+    }
   }
 
   return { email, handle, displayName, role };

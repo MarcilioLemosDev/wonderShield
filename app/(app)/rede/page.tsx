@@ -26,15 +26,27 @@ export default function RedePage() {
     const supabase = getSupabase();
     if (!supabase) return;
     let ativo = true;
-    void supabase
-      .from("profiles")
-      .select("id, handle, display_name, instagram, profession, city")
-      .order("display_name", { ascending: true })
-      .then(({ data }) => {
-        if (ativo) setPessoas((data ?? []) as Pessoa[]);
-      });
+
+    const carregar = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id, handle, display_name, instagram, profession, city")
+        .order("display_name", { ascending: true });
+      if (ativo) setPessoas((data ?? []) as Pessoa[]);
+    };
+    void carregar();
+
+    // Reflete na hora: alguém definiu a cidade, entrou ou saiu da rede.
+    const canal = supabase
+      .channel("rede-perfis")
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => {
+        void carregar();
+      })
+      .subscribe();
+
     return () => {
       ativo = false;
+      supabase.removeChannel(canal);
     };
   }, []);
 
