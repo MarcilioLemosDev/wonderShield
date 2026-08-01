@@ -68,13 +68,19 @@ export default function PerfilPage() {
       const { data: sess } = await supabase.auth.getSession();
       const uid = sess.session?.user.id;
       if (!uid) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("handle, display_name, instagram, age, profession, bio, city")
-        .eq("id", uid)
-        .single();
-      if (!active || !data) return;
-      const p = data as Profile;
+      // handle e instagram foram revogados da tabela (anonimato); o próprio dono
+      // os recupera pela função meus_dados(). Os demais campos vêm da tabela.
+      const [pub, meus] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("display_name, sign, age, profession, bio, city")
+          .eq("id", uid)
+          .single(),
+        supabase.rpc("meus_dados").maybeSingle(),
+      ]);
+      if (!active || !pub.data) return;
+      const meta = (meus.data ?? {}) as { handle?: string; instagram?: string };
+      const p = { ...pub.data, handle: meta.handle ?? "", instagram: meta.instagram ?? null } as Profile;
       setProfile(p);
       setName(p.display_name ?? "");
       setProfession(p.profession ?? "");
@@ -100,12 +106,13 @@ export default function PerfilPage() {
     if (ageNum !== null && (!Number.isFinite(ageNum) || ageNum < 13 || ageNum > 120)) {
       return setError("Idade inválida.");
     }
-    if (name.trim().length < 2) return setError("Informe seu nome.");
     if (!city) return setError("Escolha sua cidade — é por ela que a rede se encontra.");
 
     setSaving(true);
+    // O nome estelar, o @ e o signo são identidade: definidos na admissão e
+    // imutáveis pelo membro (o banco também recusa, ver 0019). Aqui só vão os
+    // campos que são de fato editáveis por quem é dono da linha.
     const patch = {
-      display_name: name.trim(),
       profession: profession.trim() || null,
       age: ageNum,
       bio: bio.trim() || null,
@@ -192,8 +199,9 @@ export default function PerfilPage() {
           <div className="stack">
             <div className="form-grid">
               <div className="field">
-                <label>Nome</label>
-                <input value={name} onChange={(e) => setName(e.target.value)} />
+                <label>Nome estelar</label>
+                <input value={profile?.display_name ?? ""} disabled />
+                <span className="hint">Sua identidade na rede — só a administração muda.</span>
               </div>
               <div className="field">
                 <label>@ do Instagram</label>
