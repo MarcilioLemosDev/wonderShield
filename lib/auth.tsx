@@ -27,10 +27,9 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "wondershield.session";
 
-// Deriva a sessão do console a partir do usuário do Supabase. A tabela
-// public.profiles é a fonte de verdade de handle/display_name/role — é ela que
-// as RLS usam e que define quem é admin. Se a consulta falhar, caímos nos
-// valores do user_metadata / prefixo do e-mail.
+// Deriva a sessão a partir do usuário do Supabase. handle e nome vêm do perfil;
+// o papel vem da função my_role(), não da coluna — a leitura de profiles.role é
+// revogada para que um membro não consiga listar quem são os administradores.
 async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Session> {
   const email = user.email ?? "";
   const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
@@ -40,21 +39,27 @@ async function sessionFromUser(supabase: SupabaseClient, user: User): Promise<Se
   let displayName =
     (typeof meta.display_name === "string" && meta.display_name) ||
     handle.charAt(0).toUpperCase() + handle.slice(1);
-  let role = (typeof meta.role === "string" && meta.role) || "member";
+  let role = "member";
 
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("handle, display_name, role")
+      .select("handle, display_name")
       .eq("id", user.id)
       .single();
     if (data) {
       handle = data.handle ?? handle;
       displayName = data.display_name ?? displayName;
-      role = data.role ?? role;
     }
   } catch {
     // sem perfil ainda / RLS: mantém os defaults do metadata
+  }
+
+  try {
+    const { data, error } = await supabase.rpc("my_role");
+    if (!error && typeof data === "string") role = data;
+  } catch {
+    // função ainda não aplicada: segue como membro
   }
 
   return { email, handle, displayName, role };
