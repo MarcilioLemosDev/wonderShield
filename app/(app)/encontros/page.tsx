@@ -42,6 +42,7 @@ export default function EncontrosPage() {
   const { session } = useAuth();
   const [encontros, setEncontros] = useState<Encontro[] | null>(null);
   const [presencas, setPresencas] = useState<Presenca[]>([]);
+  const [nomes, setNomes] = useState<Map<string, string>>(new Map());
   const [meuId, setMeuId] = useState<string | null>(null);
   const [minhaCidade, setMinhaCidade] = useState<string>("");
   const [cidade, setCidade] = useState<string>("todas");
@@ -59,15 +60,20 @@ export default function EncontrosPage() {
   const carregar = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase) return;
-    const [e, p] = await Promise.all([
+    const [e, p, perfis] = await Promise.all([
       supabase
         .from("encontros")
         .select("id, autor, titulo, local, detalhes, quando, city, cancelado")
         .order("quando", { ascending: true }),
       supabase.from("presencas").select("encontro_id, pessoa"),
+      supabase.from("profiles").select("id, display_name"),
     ]);
     setEncontros((e.data ?? []) as Encontro[]);
     setPresencas((p.data ?? []) as Presenca[]);
+    // saber QUEM vai é o que decide se você vai também
+    setNomes(
+      new Map(((perfis.data ?? []) as { id: string; display_name: string }[]).map((x) => [x.id, x.display_name])),
+    );
   }, []);
 
   useEffect(() => {
@@ -124,6 +130,13 @@ export default function EncontrosPage() {
 
   const vou = (id: string) => presencas.some((p) => p.encontro_id === id && p.pessoa === meuId);
   const quantos = (id: string) => presencas.filter((p) => p.encontro_id === id).length;
+
+  // Quem já confirmou. Numa rede feita para encontrar gente, o rosto de quem vai
+  // pesa mais que o número.
+  const quemVai = (id: string) =>
+    presencas
+      .filter((p) => p.encontro_id === id)
+      .map((p) => ({ id: p.pessoa, nome: nomes.get(p.pessoa) ?? "membro" }));
 
   const alternarPresenca = async (e: Encontro) => {
     const supabase = getSupabase();
@@ -344,11 +357,17 @@ export default function EncontrosPage() {
                     {e.detalhes}
                   </div>
                 )}
-                <div className="muted" style={{ fontSize: 13, marginTop: "0.35rem" }}>
-                  {quantos(e.id)} {quantos(e.id) === 1 ? "confirmado" : "confirmados"} ·{" "}
-                  <Link href={`/u/${e.autor}`} className="msg-author">
-                    proposto por {e.autor === meuId ? "você" : "um membro"}
-                  </Link>
+                <div className="confirmados">
+                  {quemVai(e.id).length === 0 ? (
+                    <span className="muted">Ninguém confirmou ainda.</span>
+                  ) : (
+                    quemVai(e.id).map((p) => (
+                      <Link key={p.id} href={`/u/${p.id}`} className="quem-vai">
+                        <span className="avatar">{p.nome.slice(0, 2).toUpperCase()}</span>
+                        {p.id === meuId ? "você" : p.nome}
+                      </Link>
+                    ))
+                  )}
                 </div>
               </div>
               <div className="row" style={{ gap: "0.4rem", flexWrap: "wrap" }}>

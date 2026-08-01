@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Instrument_Serif } from "next/font/google";
 
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
@@ -12,6 +12,15 @@ const inter = Inter({
   variable: "--sans",
 });
 
+// Serifa de display para títulos e para a marca — o contraponto editorial que
+// tira a interface do lugar de "painel de sistema".
+const serif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+  variable: "--serif",
+});
+
 export const metadata: Metadata = {
   title: "wonderblue",
   description: "Uma rede sem anúncios, por convite. Conversa que vira encontro.",
@@ -19,7 +28,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt" className={inter.variable}>
+    <html lang="pt" className={`${inter.variable} ${serif.variable}`}>
       <body>
         <Estrelas />
         <Energia />

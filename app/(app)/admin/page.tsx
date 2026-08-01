@@ -52,6 +52,21 @@ function igUrl(handle: string) {
   return `https://instagram.com/${(handle ?? "").replace(/^@+/, "")}`;
 }
 
+// O acesso é entregue no direct, na mão. Deixar a mensagem pronta evita o
+// retrabalho de montar o texto a cada aprovação.
+function mensagemDM(c: { handle?: string; password: string }): string {
+  return [
+    "Seu acesso ao wonderblue está pronto 🔵",
+    "",
+    `entrar com: ${c.handle ?? ""}`,
+    `senha: ${c.password}`,
+    "",
+    "https://7aery.com",
+    "",
+    "Esta senha é provisória — ao entrar, você cria a sua.",
+  ].join("\n");
+}
+
 export default function AdminPage() {
   const { session, ready } = useAuth();
   const router = useRouter();
@@ -62,6 +77,7 @@ export default function AdminPage() {
   const [chatCount, setChatCount] = useState<number | null>(null);
   const [verHistorico, setVerHistorico] = useState(false);
   const [meuId, setMeuId] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<{ label: string; handle?: string; password: string } | null>(null);
@@ -330,13 +346,35 @@ export default function AdminPage() {
       {error && <div className="card auth-error">{error}</div>}
 
       {created && (
-        <div className="card" style={{ borderColor: "var(--cyan, #35d0d0)" }}>
-          <div className="card-title">Credenciais de {created.label} — envie por DM</div>
-          <div className="muted">Não será exibida de novo. Repasse pelo direct do Instagram.</div>
-          <pre style={{ marginTop: "0.6rem", whiteSpace: "pre-wrap" }}>
-{`login (@): ${created.handle ?? created.label}
-senha:     ${created.password}`}
-          </pre>
+        <div className="card destaque">
+          <div className="card-title">Acesso de {created.label} — envie por DM</div>
+          <div className="muted">
+            A senha não será exibida de novo. Copie a mensagem pronta e cole no direct.
+          </div>
+          <pre style={{ marginTop: "0.6rem", whiteSpace: "pre-wrap" }}>{mensagemDM(created)}</pre>
+          <div className="row" style={{ gap: "0.4rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={async () => {
+                await navigator.clipboard.writeText(mensagemDM(created));
+                setCopiado(true);
+                setTimeout(() => setCopiado(false), 2000);
+              }}
+            >
+              {copiado ? "Copiado ✓" : "Copiar mensagem"}
+            </button>
+            <a
+              className="btn btn-sm"
+              href={igUrl(created.handle ?? "")}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Abrir o Instagram
+            </a>
+            <button className="btn btn-sm" onClick={() => setCreated(null)}>
+              Já enviei
+            </button>
+          </div>
         </div>
       )}
 
