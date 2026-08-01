@@ -31,6 +31,7 @@ export default function RedePage() {
       const { data } = await supabase
         .from("profiles")
         .select("id, display_name, sign, profession, city")
+        .eq("hidden", false)
         .order("display_name", { ascending: true });
       if (ativo) setPessoas((data ?? []) as Pessoa[]);
     };

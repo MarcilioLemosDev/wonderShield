@@ -35,6 +35,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true, password });
   }
 
+  // Presença na rede. Uma conta de comando pode ficar fora da vista para que
+  // quem administra viva o wonderblue por uma conta comum.
+  if (body.action === "set_hidden") {
+    const hidden = body.hidden === true;
+    const { error } = await admin.from("profiles").update({ hidden }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, hidden });
+  }
+
   if (body.action === "set_role") {
     const role = body.role === "admin" ? "admin" : "member";
     // Guarda: não deixar a rede ficar sem nenhum administrador.
