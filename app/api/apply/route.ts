@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { dentroDoLimite } from "@/lib/throttle";
+import { dentroDoLimite, clientIp } from "@/lib/throttle";
 import { cidadeValida } from "@/lib/cidades";
 import { signoValido, relacionamentoValido } from "@/lib/estelar";
 
@@ -46,7 +46,16 @@ export async function POST(request: Request) {
   if (!relacionamentoValido(relationship))
     return NextResponse.json({ error: "Diga como você está hoje." }, { status: 400 });
 
-  if (!(await dentroDoLimite(admin, { tabela: "applications", minutos: 10, maximo: 20 }))) {
+  const ip = clientIp(request);
+  if (
+    !(await dentroDoLimite(admin, {
+      tabela: "applications",
+      ip,
+      minutos: 10,
+      maxPorIp: 3,
+      maxGlobal: 200,
+    }))
+  ) {
     return NextResponse.json(
       { error: "Muitas candidaturas agora há pouco. Tente de novo em alguns minutos." },
       { status: 429 },
@@ -55,16 +64,11 @@ export async function POST(request: Request) {
 
   const { error } = await admin
     .from("applications")
-    .insert({ name, instagram, age, profession, city, sign, relationship });
+    .insert({ name, instagram, age, profession, city, sign, relationship, ip });
 
-  if (error) {
-    // índice único: já existe uma candidatura pendente para este @
-    if (error.code === "23505") {
-      return NextResponse.json(
-        { error: "Já existe uma candidatura em análise para este @." },
-        { status: 409 },
-      );
-    }
+  // R8: não revelamos se o @ já aplicou — a resposta é a mesma com ou sem
+  // candidatura anterior. O índice único (23505) impede a duplicata em silêncio.
+  if (error && error.code !== "23505") {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

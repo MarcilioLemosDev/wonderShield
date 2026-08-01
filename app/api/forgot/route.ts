@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { dentroDoLimite } from "@/lib/throttle";
+import { dentroDoLimite, clientIp } from "@/lib/throttle";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +24,16 @@ export async function POST(request: Request) {
   if (identifier.length < 2)
     return NextResponse.json({ error: "Informe seu @ do Instagram." }, { status: 400 });
 
-  if (!(await dentroDoLimite(admin, { tabela: "password_requests", minutos: 10, maximo: 20 }))) {
+  const ip = clientIp(request);
+  if (
+    !(await dentroDoLimite(admin, {
+      tabela: "password_requests",
+      ip,
+      minutos: 10,
+      maxPorIp: 3,
+      maxGlobal: 200,
+    }))
+  ) {
     return NextResponse.json(
       { error: "Muitos pedidos agora há pouco. Tente de novo em alguns minutos." },
       { status: 429 },
@@ -40,7 +49,7 @@ export async function POST(request: Request) {
     .maybeSingle();
   if (jaPendente) return NextResponse.json({ ok: true });
 
-  const { error } = await admin.from("password_requests").insert({ identifier, note });
+  const { error } = await admin.from("password_requests").insert({ identifier, note, ip });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true });
