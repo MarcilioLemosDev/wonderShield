@@ -214,7 +214,7 @@ export default function ChatPage() {
       .from("messages")
       .insert({
         author: uid,
-        author_name: session?.displayName ?? "Operador",
+        author_name: session?.displayName ?? "membro",
         body,
         room: sala ?? "geral",
         reply_to: alvo?.id ?? null,

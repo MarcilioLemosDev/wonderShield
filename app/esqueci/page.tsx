@@ -46,7 +46,7 @@ export default function EsqueciPage() {
           <div className="stack">
             <div className="muted" style={{ textAlign: "center" }}>
               Pedido enviado. Você vai receber uma <b>senha provisória no direct do Instagram</b>.
-              Ao entrar, troque a senha em “Minha conta”.
+              Ao entrar, você cria a sua.
             </div>
             <a className="btn btn-primary btn-block" href="/login">
               Voltar ao login

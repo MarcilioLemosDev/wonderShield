@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
 import { usePendencias } from "@/lib/pendencias";
@@ -39,15 +39,16 @@ const Icone = {
   ),
 };
 
+// `curto` é o que cabe na barra inferior do celular.
 const NAV = [
-  { href: "/chat", label: "Bate-papo", ico: Icone.chat },
-  { href: "/encontros", label: "Encontros", ico: Icone.encontros },
-  { href: "/rede", label: "Rede", ico: Icone.rede },
-  { href: "/perfil", label: "Meu perfil", ico: Icone.perfil },
+  { href: "/chat", label: "Bate-papo", curto: "Papo", ico: Icone.chat },
+  { href: "/encontros", label: "Encontros", curto: "Encontros", ico: Icone.encontros },
+  { href: "/rede", label: "Rede", curto: "Rede", ico: Icone.rede },
+  { href: "/perfil", label: "Meu perfil", curto: "Perfil", ico: Icone.perfil },
 ];
 
 // Itens visíveis só para administradores.
-const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", ico: Icone.admin }];
+const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", curto: "Admin", ico: Icone.admin }];
 
 const TITLES: Record<string, string> = {
   "/chat": "Bate-papo",
@@ -61,23 +62,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const { session, signOut } = useAuth();
-  const [open, setOpen] = useState(false);
-
-  // Fecha a gaveta ao trocar de rota.
-  useEffect(() => {
-    setOpen(false);
-  }, [path]);
-
   const title = Object.entries(TITLES).find(([h]) => path.startsWith(h))?.[1] ?? "Console";
   const initials = (session?.displayName ?? "OP").slice(0, 2).toUpperCase();
   const ehAdmin = session?.role === "admin";
   const nav = ehAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
   const pendencias = usePendencias(!!ehAdmin);
-  const close = () => setOpen(false);
 
   return (
     <div className="app">
-      <aside className={`sidebar${open ? " open" : ""}`}>
+      <aside className="sidebar">
         <div className="sidebar-brand wordmark">
           wonder<b>blue</b>
           <span className="sub">
@@ -89,7 +82,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <Link
               key={n.href}
               href={n.href}
-              onClick={close}
               className={path.startsWith(n.href) ? "active" : ""}
             >
               <span className="ico">{n.ico}</span>
@@ -104,22 +96,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <Link
           href="/perfil"
-          onClick={close}
           className="sidebar-user"
           style={{ textDecoration: "none", color: "inherit" }}
-          title="Minha conta"
+          title="Meu perfil"
         >
           <span className="avatar">{initials}</span>
           <div className="who">
-            <div className="h">{session?.displayName ?? "Operador"}</div>
-            <div className="r">{session?.role ?? "member"}</div>
+            <div className="h">{session?.displayName ?? "membro"}</div>
+            <div className="r">{session?.role === "admin" ? "administração" : "membro"}</div>
           </div>
         </Link>
         <button
           className="btn btn-sm btn-danger"
           style={{ marginTop: "0.6rem" }}
           onClick={() => {
-            close();
             signOut();
             router.replace("/login");
           }}
@@ -128,22 +118,35 @@ export default function AppShell({ children }: { children: ReactNode }) {
         </button>
       </aside>
 
-      {/* fundo escuro atrás da gaveta (só aparece no mobile quando aberta) */}
-      <div className={`scrim${open ? " show" : ""}`} onClick={close} aria-hidden />
-
       <div className="main">
         <div className="topbar">
-          <button className="hamburger" aria-label="Abrir menu" onClick={() => setOpen(true)}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M4 7h16M4 12h16M4 17h16" />
-            </svg>
-          </button>
+          {/* marca à esquerda no celular, onde a sidebar não existe */}
+          <div className="topbar-brand wordmark">
+            wonder<b>blue</b>
+          </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{title}</h1>
           </div>
         </div>
         <div className="content">{children}</div>
       </div>
+
+      {/* barra inferior — navegação de polegar no celular */}
+      <nav className="bottom-nav">
+        {nav.map((n) => (
+          <Link
+            key={n.href}
+            href={n.href}
+            className={path.startsWith(n.href) ? "active" : ""}
+          >
+            <span className="ico">
+              {n.ico}
+              {n.href === "/admin" && pendencias > 0 && <span className="dot" />}
+            </span>
+            <span className="lbl">{n.curto}</span>
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }
