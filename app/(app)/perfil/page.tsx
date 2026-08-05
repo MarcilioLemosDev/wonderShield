@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { useAuth } from "@/lib/auth";
+import { useRouter } from "next/navigation";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 
@@ -21,7 +22,12 @@ type Profile = {
 };
 
 export default function PerfilPage() {
-  const { session } = useAuth();
+  const { session, signOut } = useAuth();
+  const router = useRouter();
+  const sair = () => {
+    signOut();
+    router.replace("/login");
+  };
   const [profile, setProfile] = useState<Profile | null>(null);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -316,6 +322,12 @@ export default function PerfilPage() {
           </form>
         )}
       </div>
+
+      {/* Sair vive aqui também: no celular a barra lateral não existe, e o
+          perfil é onde a mão procura a saída. */}
+      <button className="btn btn-danger btn-block sair-mobile" onClick={sair}>
+        Sair da conta
+      </button>
     </div>
   );
 }
