@@ -321,6 +321,41 @@ table td { font-size: 14.5px; }
 .msg-author { color: var(--ink-hi); font-weight: 550; }
 .msg-author:hover { color: var(--blue); }
 
+/* ---- sino de notificações ---- */
+.sino-wrap { position: relative; flex-shrink: 0; }
+.sino {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: var(--pill);
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink);
+  transition: color 0.15s, border-color 0.15s;
+}
+.sino:hover { color: var(--ink-hi); border-color: rgba(76, 156, 255, 0.5); }
+.sino-badge {
+  position: absolute; top: -3px; right: -3px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--pill); background: var(--red); color: #fff;
+  font-size: 11px; font-weight: 650; border: 2px solid var(--bg);
+}
+.sino-painel {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 60;
+  width: min(340px, 90vw);
+  background: rgba(10, 14, 26, 0.97); backdrop-filter: blur(16px);
+  border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  box-shadow: var(--sombra); overflow: hidden;
+}
+.sino-cabeca { padding: 0.8rem 1rem; font-weight: 600; color: var(--ink-hi); border-bottom: 1px solid var(--line-soft); }
+.sino-lista { max-height: 60vh; overflow-y: auto; }
+.sino-item {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem;
+  width: 100%; text-align: left; padding: 0.7rem 1rem;
+  background: none; border: none; border-bottom: 1px solid var(--line-soft); color: var(--ink);
+}
+.sino-item:hover { background: rgba(255, 255, 255, 0.04); }
+.sino-item.novo { background: rgba(76, 156, 255, 0.08); }
+.sino-frase { font-size: 13.5px; line-height: 1.4; }
+.sino-tempo { font-size: 12px; color: var(--dim); flex-shrink: 0; }
+
 /* contador de pendências no menu */
 .badge {
   margin-left: auto;

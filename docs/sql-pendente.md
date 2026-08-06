@@ -28,3 +28,13 @@ resposta de 1 nível), função `post_visivel()`, RLS, selo de autor e realtime.
 
 > Cole `supabase/migrations/0021_engajamento.sql` inteiro no SQL Editor. Depende
 > de `posts` (S1), então rode **depois** da 0020.
+
+---
+
+## Sprint 3 · Notificações — `0022_notificacoes.sql`
+
+Cria `notifications` + triggers que geram a notificação no banco (reagiu,
+comentou, respondeu), RLS (só o dono lê/marca) e realtime.
+
+> Cole `supabase/migrations/0022_notificacoes.sql`. Depende de `posts` (0020) e
+> `post_comments`/`post_reactions` (0021). Rode **depois** das duas.

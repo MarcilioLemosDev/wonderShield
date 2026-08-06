@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { useAuth } from "@/lib/auth";
 import { usePendencias } from "@/lib/pendencias";
+import Notificacoes from "@/components/Notificacoes";
 
 // Ícones de traço, 18px — desenhados aqui para não puxar biblioteca.
 const Icone = {
@@ -134,6 +135,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{title}</h1>
           </div>
+          <Notificacoes />
         </div>
         <div className="content">{children}</div>
       </div>
