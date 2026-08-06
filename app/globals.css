@@ -462,6 +462,50 @@ table td { font-size: 14.5px; }
 .post-autor .quando { display: block; font-size: 12.5px; color: var(--dim); }
 .post-corpo { white-space: pre-wrap; word-break: break-word; line-height: 1.6; color: var(--ink); }
 
+/* barra de engajamento */
+.post-acoes {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  margin-top: 0.9rem; padding-top: 0.7rem;
+  border-top: 1px solid var(--line-soft);
+}
+.reacao-wrap { position: relative; }
+.reacao-btn.ativa { color: var(--blue); border-color: rgba(76, 156, 255, 0.5); }
+.reacao-picker {
+  position: absolute; bottom: calc(100% + 6px); left: 0; z-index: 20;
+  display: flex; gap: 0.15rem; padding: 0.3rem 0.4rem;
+  background: rgba(10, 14, 26, 0.96); backdrop-filter: blur(10px);
+  border: 1px solid var(--line-soft); border-radius: var(--pill);
+  box-shadow: var(--sombra);
+}
+.reacao-picker button {
+  border: none; background: none; font-size: 22px; line-height: 1;
+  padding: 0.15rem; border-radius: 50%; transition: transform 0.12s;
+}
+.reacao-picker button:hover { transform: scale(1.35); }
+.post-contagem {
+  margin-left: auto; display: flex; align-items: center; gap: 0.8rem;
+  font-size: 13px; color: var(--dim);
+}
+.post-contagem span span { margin-right: -3px; }
+.link-contagem { background: none; border: none; color: var(--dim); font: inherit; padding: 0; }
+.link-contagem:hover { color: var(--blue); }
+
+/* comentários */
+.comentarios { margin-top: 0.8rem; padding-top: 0.8rem; border-top: 1px solid var(--line-soft); }
+.comentario { margin-bottom: 0.7rem; }
+.comentario.resposta { margin-left: 1.4rem; margin-top: 0.5rem; }
+.comentario-corpo {
+  background: rgba(255, 255, 255, 0.04); border-radius: var(--r);
+  padding: 0.5rem 0.7rem; line-height: 1.5;
+}
+.comentario-autor { color: var(--ink-hi); font-weight: 600; font-size: 13.5px; }
+.comentario-autor:hover { color: var(--blue); }
+.comentario-acao { background: none; border: none; color: var(--dim); font-size: 12.5px; padding: 0; }
+.comentario-acao:hover { color: var(--blue); }
+.comentar-form { margin-top: 0.6rem; }
+.respondendo-a { font-size: 12.5px; margin-bottom: 0.35rem; }
+.respondendo-a button { background: none; border: none; color: var(--blue); font: inherit; padding: 0; }
+
 /* ============================================================================
    Encontros
    ============================================================================ */
