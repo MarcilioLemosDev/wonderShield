@@ -661,6 +661,85 @@ table td { font-size: 14.5px; }
   background: rgba(76, 156, 255, 0.08);
 }
 
+/* ============================================================================
+   Mensagens diretas (DM) — messenger de duas colunas
+   ============================================================================ */
+.dm {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: calc(100vh - 200px);
+}
+.dm-lista { display: flex; flex-direction: column; gap: 0.3rem; align-content: flex-start; }
+.dm-conversa {
+  display: flex; align-items: center; gap: 0.6rem;
+  width: 100%; text-align: left; padding: 0.55rem 0.6rem;
+  background: none; border: 1px solid transparent; border-radius: var(--r);
+  color: var(--ink); transition: background 0.15s, border-color 0.15s;
+}
+.dm-conversa:hover { background: rgba(255, 255, 255, 0.04); }
+.dm-conversa.ativa { background: rgba(76, 156, 255, 0.12); border-color: rgba(76, 156, 255, 0.28); }
+.dm-conversa .avatar { width: 38px; height: 38px; font-size: 13px; flex-shrink: 0; }
+.dm-conversa-nome { flex: 1; min-width: 0; color: var(--ink-hi); font-weight: 550; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-nao-lida {
+  flex-shrink: 0; min-width: 20px; height: 20px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--pill); background: var(--red); color: #fff;
+  font-size: 11.5px; font-weight: 650; font-variant-numeric: tabular-nums;
+}
+
+.dm-conversa-aberta { display: flex; flex-direction: column; min-height: 0; }
+.dm-cabeca {
+  display: flex; align-items: center; gap: 0.7rem;
+  padding-bottom: 0.7rem; margin-bottom: 0.2rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+.dm-voltar { display: none; padding: 0 0.7rem; }
+.dm-cabeca-nome {
+  color: var(--ink-hi); font-weight: 600; font-size: 16px; letter-spacing: -0.015em;
+  text-decoration: none;
+}
+.dm-cabeca-nome:hover { color: var(--blue); }
+.dm-mensagens {
+  flex: 1; min-height: 220px; max-height: 56vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 0.4rem;
+  padding: 0.9rem 0.2rem 0.4rem; margin: 0 -0.2rem;
+}
+.dm-mensagens::-webkit-scrollbar { width: 6px; }
+.dm-mensagens::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+.dm-bolha {
+  align-self: flex-start; max-width: 78%;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px 14px 14px 4px;
+  padding: 0.5rem 0.7rem; line-height: 1.5; word-break: break-word;
+}
+.dm-bolha.minha {
+  align-self: flex-end;
+  background: rgba(76, 156, 255, 0.14);
+  border-color: rgba(76, 156, 255, 0.24);
+  border-radius: 14px 14px 4px 14px;
+}
+.dm-hora { display: block; margin-top: 2px; font-size: 11px; color: var(--dim); text-align: right; }
+
+/* ---- ícone de mensagens na topbar ---- */
+.dm-atalho { position: relative; flex-shrink: 0; text-decoration: none; }
+
+/* ação de mandar mensagem no perfil público */
+.perfil-acoes {
+  display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+  margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px solid var(--line-soft);
+}
+
+/* no celular, a lista some quando uma conversa está aberta */
+@media (max-width: 720px) {
+  .dm { grid-template-columns: 1fr; min-height: calc(100vh - 170px); }
+  .dm.com-aberta .dm-lista { display: none; }
+  .dm:not(.com-aberta) .dm-conversa-aberta { display: none; }
+  .dm-voltar { display: inline-flex; }
+}
+
 /* ---- shell responsivo ----
    No desktop, barra lateral. No celular, barra inferior: navegação de polegar,
    sempre visível, sem gaveta para abrir. É o padrão que a mão já conhece. */

@@ -38,3 +38,16 @@ comentou, respondeu), RLS (só o dono lê/marca) e realtime.
 
 > Cole `supabase/migrations/0022_notificacoes.sql`. Depende de `posts` (0020) e
 > `post_comments`/`post_reactions` (0021). Rode **depois** das duas.
+
+---
+
+## Sprint 4 · Mensagens diretas (DM) — `0023_dm.sql`
+
+Cria `dm_threads` (uma conversa por par, ordenada e sem duplicata) e
+`dm_messages`, função `na_thread()`, RPC `abrir_dm()` (abre/encontra a conversa),
+RLS (só os dois participantes leem/escrevem), bloqueio da conta invisível,
+`toca_thread()` (ordena a lista por atividade) e realtime.
+
+> Cole `supabase/migrations/0023_dm.sql` inteiro no SQL Editor. Depende de
+> `is_member()` e `bloqueia_conta_invisivel()` — já existentes. Ao final:
+> `notify pgrst, 'reload schema';`
