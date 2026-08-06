@@ -12,6 +12,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 import { SIGNOS, RELACIONAMENTOS, nomeDoSigno, sugerirNomeEstelar } from "@/lib/estelar";
 import Tribos from "@/components/Tribos";
+import Moderacao from "@/components/Moderacao";
 
 type UserRow = {
   id: string;
@@ -21,6 +22,7 @@ type UserRow = {
   sign: string | null;
   relationship: string | null;
   hidden: boolean;
+  banned: boolean;
   role: string;
   instagram: string | null;
   age: number | null;
@@ -198,6 +200,18 @@ export default function AdminPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const banir = async (id: string, banir: boolean) => {
+    await patchUser(id, { action: "set_banned", banned: banir });
+  };
+
+  const alternarBan = async (u: UserRow) => {
+    const texto = u.banned
+      ? `Readmitir ${u.display_name} na rede?`
+      : `Suspender ${u.display_name}? A conta some da vista dos outros e não escreve mais em lugar nenhum.`;
+    if (!window.confirm(texto)) return;
+    await banir(u.id, !u.banned);
   };
 
   const alternarPresenca = async (u: UserRow) => {
@@ -574,6 +588,11 @@ export default function AdminPage() {
         </form>
       </div>
 
+      <Moderacao
+        pessoas={(users ?? []).map((u) => ({ id: u.id, display_name: u.display_name, banned: u.banned }))}
+        onBanir={banir}
+      />
+
       <Tribos pessoas={(users ?? []).map((u) => ({ id: u.id, display_name: u.display_name }))} />
 
       {/* moderação do bate-papo */}
@@ -698,6 +717,7 @@ export default function AdminPage() {
                       </a>
                       {u.role === "admin" && <span className="tag">admin</span>}
                       {u.hidden && <span className="tag invisivel">invisível</span>}
+                      {u.banned && <span className="tag banido">suspenso</span>}
                       {u.id === meuId && <span className="tag">você</span>}
                     </div>
                     <div className="muted" style={{ fontSize: 13 }}>
@@ -721,6 +741,11 @@ export default function AdminPage() {
                     <button className="btn btn-sm" disabled={busy} onClick={() => alternarPresenca(u)}>
                       {u.hidden ? "Mostrar na Rede" : "Ocultar da Rede"}
                     </button>
+                    {u.id !== meuId && u.role !== "admin" && (
+                      <button className="btn btn-sm" disabled={busy} onClick={() => alternarBan(u)}>
+                        {u.banned ? "Readmitir" : "Suspender"}
+                      </button>
+                    )}
                     <button className="btn btn-sm btn-danger" disabled={busy} onClick={() => removeUser(u)}>
                       Excluir
                     </button>

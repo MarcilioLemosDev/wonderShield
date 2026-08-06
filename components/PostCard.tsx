@@ -8,6 +8,7 @@ import Link from "next/link";
 
 import { getSupabase } from "@/lib/supabase";
 import { REACOES, emojiDe } from "@/lib/reacoes";
+import Denunciar from "@/components/Denunciar";
 
 export type Post = {
   id: string;
@@ -256,6 +257,16 @@ export default function PostCard({
           Comentar
         </button>
 
+        {!sou && (
+          <Denunciar
+            alvoTipo="post"
+            alvoId={post.id}
+            alvoAutor={post.author}
+            trecho={body}
+            variante="botao"
+          />
+        )}
+
         <div className="post-contagem">
           {reacoes.length > 0 && (
             <span title={`${reacoes.length} reações`}>
@@ -356,6 +367,15 @@ function Comentario({
             <button className="comentario-acao" onClick={onApagar}>
               apagar
             </button>
+          )}
+          {c.author !== meuId && (
+            <Denunciar
+              alvoTipo="comentario"
+              alvoId={c.id}
+              alvoAutor={c.author}
+              trecho={c.body}
+              rotulo="denunciar"
+            />
           )}
         </span>
       </div>

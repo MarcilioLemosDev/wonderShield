@@ -66,3 +66,18 @@ atômico). Realtime em `tribo_pedidos`.
 > `tribos`/`tribo_membros` (0016), `manda_na_tribo()`, `na_tribo()`,
 > `is_member()` e `bloqueia_conta_invisivel()` — já existentes. Ao final:
 > `notify pgrst, 'reload schema';`
+
+---
+
+## Sprint 6 · Moderação — `0025_moderacao.sql`
+
+Adiciona `profiles.banned` (suspensão), **estende** `bloqueia_conta_invisivel()`
+para também barrar a conta suspensa em toda escrita, e a policy `profiles_select`
+para escondê-la dos outros. Cria `denuncias` (a fila: post/comentário/mensagem/
+perfil, com trecho e motivo), RLS (só admin lê/decide; qualquer membro abre),
+selo `selar_denuncia()` e realtime.
+
+> Cole `supabase/migrations/0025_moderacao.sql` inteiro no SQL Editor. **Reexecuta
+> `bloqueia_conta_invisivel()` e `profiles_select`** — rode depois de todas as
+> anteriores (0019–0024), para não sobrescrever versão mais nova. Ao final:
+> `notify pgrst, 'reload schema';`

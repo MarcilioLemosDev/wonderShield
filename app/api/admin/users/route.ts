@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await admin
     .from("profiles")
-    .select("id, handle, display_name, real_name, sign, relationship, role, instagram, age, profession, city, hidden, created_at")
+    .select("id, handle, display_name, real_name, sign, relationship, role, instagram, age, profession, city, hidden, banned, created_at")
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 

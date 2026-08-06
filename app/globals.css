@@ -144,6 +144,11 @@ select option { background: #0b1020; color: var(--ink-hi); }
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.1);
 }
+.tag.banido {
+  color: #ff9b9b;
+  background: rgba(255, 84, 84, 0.1);
+  border-color: rgba(255, 84, 84, 0.28);
+}
 
 .num { font-variant-numeric: tabular-nums; }
 
@@ -749,6 +754,24 @@ table td { font-size: 14.5px; }
   font-family: var(--serif-display); font-weight: 400; font-size: 26px;
   color: var(--ink-hi); letter-spacing: -0.015em; line-height: 1.1;
 }
+
+/* ============================================================================
+   Moderação — modal de denúncia e tela de conta suspensa
+   ============================================================================ */
+.modal-fundo {
+  position: fixed; inset: 0; z-index: 80;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.1rem;
+  background: rgba(3, 5, 11, 0.62); backdrop-filter: blur(4px);
+  animation: surge 0.18s ease-out;
+}
+.modal-caixa { width: min(420px, 100%); }
+
+.suspensa-tela {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 1.4rem;
+}
+.suspensa-card { width: min(440px, 100%); text-align: left; }
 
 /* no celular, a lista some quando uma conversa está aberta */
 @media (max-width: 720px) {

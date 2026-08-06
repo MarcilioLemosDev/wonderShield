@@ -12,7 +12,7 @@ export function usePendencias(ehAdmin: boolean): number {
   const contar = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase) return;
-    const [a, p] = await Promise.all([
+    const [a, p, d] = await Promise.all([
       supabase
         .from("applications")
         .select("id", { count: "exact", head: true })
@@ -21,8 +21,12 @@ export function usePendencias(ehAdmin: boolean): number {
         .from("password_requests")
         .select("id", { count: "exact", head: true })
         .eq("status", "pending"),
+      supabase
+        .from("denuncias")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "aberta"),
     ]);
-    setTotal((a.count ?? 0) + (p.count ?? 0));
+    setTotal((a.count ?? 0) + (p.count ?? 0) + (d.count ?? 0));
   }, []);
 
   useEffect(() => {
@@ -39,6 +43,9 @@ export function usePendencias(ehAdmin: boolean): number {
         void contar();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "password_requests" }, () => {
+        void contar();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "denuncias" }, () => {
         void contar();
       })
       .subscribe();

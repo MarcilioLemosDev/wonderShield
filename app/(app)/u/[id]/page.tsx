@@ -10,6 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { nomeDaCidade } from "@/lib/cidades";
 import { nomeDoSigno, simboloDoSigno, nomeDoRelacionamento } from "@/lib/estelar";
+import Denunciar from "@/components/Denunciar";
 
 type Profile = {
   id: string;
@@ -121,6 +122,13 @@ export default function PerfilPublicoPage() {
             <button className="btn btn-primary" onClick={mandarMensagem} disabled={abrindo}>
               {abrindo ? "Abrindo…" : "Mandar mensagem"}
             </button>
+            <Denunciar
+              alvoTipo="perfil"
+              alvoId={profile.id}
+              alvoAutor={profile.id}
+              trecho={profile.display_name}
+              variante="botao"
+            />
             {erroDm && <span className="auth-error" style={{ margin: 0 }}>{erroDm}</span>}
           </div>
         )}

@@ -44,6 +44,25 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ ok: true, hidden });
   }
 
+  // Suspensão. A conta suspensa some da vista dos outros e o banco recusa toda
+  // escrita dela. Um admin não se suspende, nem suspende outro admin (para não
+  // travar a governança por engano).
+  if (body.action === "set_banned") {
+    const banned = body.banned === true;
+    if (id === check.userId) {
+      return NextResponse.json({ error: "Você não pode suspender a própria conta." }, { status: 400 });
+    }
+    if (banned) {
+      const { data: alvo } = await admin.from("profiles").select("role").eq("id", id).single();
+      if (alvo?.role === "admin") {
+        return NextResponse.json({ error: "Rebaixe o administrador antes de suspender." }, { status: 400 });
+      }
+    }
+    const { error } = await admin.from("profiles").update({ banned }).eq("id", id);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, banned });
+  }
+
   if (body.action === "set_role") {
     const role = body.role === "admin" ? "admin" : "member";
     // Guarda: não deixar a rede ficar sem nenhum administrador.
