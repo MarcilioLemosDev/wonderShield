@@ -147,7 +147,7 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    if (ready && session && session.role !== "admin") router.replace("/chat");
+    if (ready && session && session.role !== "admin") router.replace("/feed");
   }, [ready, session, router]);
 
   // Guarda o próprio id para marcar "você" na lista.

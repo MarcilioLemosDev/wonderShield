@@ -9,6 +9,11 @@ import { usePendencias } from "@/lib/pendencias";
 
 // Ícones de traço, 18px — desenhados aqui para não puxar biblioteca.
 const Icone = {
+  feed: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5h16M4 12h16M4 19h10" />
+    </svg>
+  ),
   chat: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-3.8-.8L3 20.5l1.4-4.1A8.4 8.4 0 0 1 12 3.5a8.4 8.4 0 0 1 9 8Z" />
@@ -41,6 +46,7 @@ const Icone = {
 
 // `curto` é o que cabe na barra inferior do celular.
 const NAV = [
+  { href: "/feed", label: "Feed", curto: "Feed", ico: Icone.feed },
   { href: "/chat", label: "Bate-papo", curto: "Papo", ico: Icone.chat },
   { href: "/encontros", label: "Encontros", curto: "Encontros", ico: Icone.encontros },
   { href: "/rede", label: "Rede", curto: "Rede", ico: Icone.rede },
@@ -51,6 +57,7 @@ const NAV = [
 const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", curto: "Admin", ico: Icone.admin }];
 
 const TITLES: Record<string, string> = {
+  "/feed": "Feed",
   "/chat": "Bate-papo",
   "/encontros": "Encontros",
   "/rede": "Rede",
