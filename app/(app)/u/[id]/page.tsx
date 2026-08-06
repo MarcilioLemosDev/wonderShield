@@ -28,6 +28,9 @@ export default function PerfilPublicoPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState("");
+  const [meuId, setMeuId] = useState<string | null>(null);
+  const [abrindo, setAbrindo] = useState(false);
+  const [erroDm, setErroDm] = useState("");
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -42,11 +45,28 @@ export default function PerfilPublicoPage() {
       if (!active) return;
       if (error) setError("Perfil não encontrado.");
       else setProfile(data as Profile);
+      const { data: sess } = await supabase.auth.getSession();
+      if (active) setMeuId(sess.session?.user.id ?? null);
     })();
     return () => {
       active = false;
     };
   }, [params?.id]);
+
+  const mandarMensagem = async () => {
+    if (!profile) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setErroDm("");
+    setAbrindo(true);
+    const { data, error } = await supabase.rpc("abrir_dm", { p_outro: profile.id });
+    setAbrindo(false);
+    if (error || !data) {
+      setErroDm("Não deu para abrir a conversa agora.");
+      return;
+    }
+    router.push(`/dm?t=${data}`);
+  };
 
   if (!isSupabaseConfigured) {
     return <div className="card muted">Indisponível em modo mock.</div>;
@@ -95,6 +115,15 @@ export default function PerfilPublicoPage() {
         <div className={`profile-bio${profile.bio ? "" : " empty"}`}>
           {profile.bio || "Sem bio ainda."}
         </div>
+
+        {meuId && meuId !== profile.id && (
+          <div className="perfil-acoes">
+            <button className="btn btn-primary" onClick={mandarMensagem} disabled={abrindo}>
+              {abrindo ? "Abrindo…" : "Mandar mensagem"}
+            </button>
+            {erroDm && <span className="auth-error" style={{ margin: 0 }}>{erroDm}</span>}
+          </div>
+        )}
       </div>
 
       <div className="card">
