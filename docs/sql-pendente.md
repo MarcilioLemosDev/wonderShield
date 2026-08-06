@@ -18,3 +18,13 @@ selo de autor (nome estelar) e bloqueio da conta invisível.
 
 Depende de: `is_member()`, `na_tribo()`, `bloqueia_conta_invisivel()` — já
 existentes das rodadas anteriores.
+
+---
+
+## Sprint 2 · Reações & Comentários — `0021_engajamento.sql`
+
+Cria `post_reactions` (uma reação por pessoa/post) e `post_comments` (com
+resposta de 1 nível), função `post_visivel()`, RLS, selo de autor e realtime.
+
+> Cole `supabase/migrations/0021_engajamento.sql` inteiro no SQL Editor. Depende
+> de `posts` (S1), então rode **depois** da 0020.

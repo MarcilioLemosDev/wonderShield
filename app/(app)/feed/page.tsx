@@ -3,35 +3,14 @@
 // Feed. O mural permanente da rede — o contraponto ao chat efêmero de 12h. Um
 // post fica. O escopo é o mesmo do bate-papo (Geral · cidade · tribo), para o
 // feed herdar a estrutura que a rede já conhece. A identidade é o nome estelar.
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
-
-type Post = {
-  id: string;
-  author: string;
-  author_name: string;
-  scope: string;
-  body: string;
-  edited: boolean;
-  created_at: string;
-};
+import PostCard, { type Post } from "@/components/PostCard";
 
 const CAMPOS = "id, author, author_name, scope, body, edited, created_at";
-
-// "agora", "há 3 min", "há 2 h", "ontem", "12/08"
-function tempo(iso: string): string {
-  const d = new Date(iso);
-  const s = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (s < 60) return "agora";
-  if (s < 3600) return `há ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `há ${Math.floor(s / 3600)} h`;
-  if (s < 172800) return "ontem";
-  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-}
 
 function nomeDoEscopo(scope: string, tribos: { id: string; nome: string }[]): string {
   if (scope === "geral") return "Rede toda";
@@ -51,8 +30,6 @@ export default function FeedPage() {
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [editando, setEditando] = useState<string | null>(null);
-  const [textoEdit, setTextoEdit] = useState("");
   const composerRef = useRef<HTMLTextAreaElement>(null);
 
   // Quem sou, minha cidade e minhas tribos — para montar os escopos possíveis.
@@ -166,25 +143,7 @@ export default function FeedPage() {
     }
   };
 
-  const salvarEdicao = async (p: Post) => {
-    const body = textoEdit.trim();
-    if (!body) return;
-    const supabase = getSupabase();
-    if (!supabase) return;
-    const { error } = await supabase.from("posts").update({ body }).eq("id", p.id);
-    if (error) return setErro(error.message);
-    setPosts((prev) => (prev ?? []).map((x) => (x.id === p.id ? { ...x, body, edited: true } : x)));
-    setEditando(null);
-  };
-
-  const apagar = async (p: Post) => {
-    if (!window.confirm("Apagar este post?")) return;
-    const supabase = getSupabase();
-    if (!supabase) return;
-    const { error } = await supabase.from("posts").delete().eq("id", p.id);
-    if (error) return setErro(error.message);
-    setPosts((prev) => (prev ?? []).filter((x) => x.id !== p.id));
-  };
+  const removerLocal = (id: string) => setPosts((prev) => (prev ?? []).filter((x) => x.id !== id));
 
   if (!isSupabaseConfigured) {
     return (
@@ -245,60 +204,14 @@ export default function FeedPage() {
       )}
 
       {posts?.map((p) => (
-        <article key={p.id} className="post">
-          <header className="post-topo">
-            <Link href={`/u/${p.author}`} className="post-autor">
-              <span className="avatar">{(p.author_name ?? "??").slice(0, 2).toUpperCase()}</span>
-              <span>
-                <span className="nome">{p.author_name}</span>
-                <span className="quando">
-                  {tempo(p.created_at)}
-                  {p.edited ? " · editado" : ""}
-                </span>
-              </span>
-            </Link>
-            {(p.author === meuId || ehAdmin) && (
-              <div className="row" style={{ gap: "0.3rem" }}>
-                {p.author === meuId && editando !== p.id && (
-                  <button
-                    className="btn btn-sm"
-                    onClick={() => {
-                      setEditando(p.id);
-                      setTextoEdit(p.body);
-                    }}
-                  >
-                    Editar
-                  </button>
-                )}
-                <button className="btn btn-sm btn-danger" onClick={() => apagar(p)}>
-                  Apagar
-                </button>
-              </div>
-            )}
-          </header>
-
-          {editando === p.id ? (
-            <div className="stack" style={{ gap: "0.5rem" }}>
-              <textarea
-                value={textoEdit}
-                onChange={(e) => setTextoEdit(e.target.value)}
-                rows={3}
-                maxLength={5000}
-                style={{ width: "100%", resize: "vertical" }}
-              />
-              <div className="row" style={{ gap: "0.4rem" }}>
-                <button className="btn btn-primary btn-sm" onClick={() => salvarEdicao(p)}>
-                  Salvar
-                </button>
-                <button className="btn btn-sm" onClick={() => setEditando(null)}>
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="post-corpo">{p.body}</div>
-          )}
-        </article>
+        <PostCard
+          key={p.id}
+          post={p}
+          meuId={meuId}
+          meuNome={session?.displayName ?? "membro"}
+          ehAdmin={ehAdmin}
+          onRemoved={removerLocal}
+        />
       ))}
     </div>
   );
