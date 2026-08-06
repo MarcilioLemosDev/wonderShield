@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth";
 import { usePendencias } from "@/lib/pendencias";
 import Notificacoes from "@/components/Notificacoes";
 import AtalhoMensagens from "@/components/AtalhoMensagens";
+import Avatar from "@/components/Avatar";
 
 // Ícones de traço, 18px — desenhados aqui para não puxar biblioteca.
 const Icone = {
@@ -82,7 +83,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { session, signOut } = useAuth();
   const title = Object.entries(TITLES).find(([h]) => path.startsWith(h))?.[1] ?? "Console";
-  const initials = (session?.displayName ?? "OP").slice(0, 2).toUpperCase();
   const ehAdmin = session?.role === "admin";
   const nav = ehAdmin ? [...NAV, ...ADMIN_NAV] : NAV;
   const pendencias = usePendencias(!!ehAdmin);
@@ -119,7 +119,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
           style={{ textDecoration: "none", color: "inherit" }}
           title="Meu perfil"
         >
-          <span className="avatar">{initials}</span>
+          <Avatar nome={session?.displayName} seed={session?.handle} />
           <div className="who">
             <div className="h">{session?.displayName ?? "membro"}</div>
             <div className="r">{session?.role === "admin" ? "administração" : "membro"}</div>

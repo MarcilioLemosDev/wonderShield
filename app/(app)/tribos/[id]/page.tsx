@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { nomeDaCidade } from "@/lib/cidades";
 import FeedEscopo from "@/components/FeedEscopo";
+import Avatar from "@/components/Avatar";
 
 type Tribo = { id: string; nome: string; descricao: string | null; city: string | null; permite_pedido: boolean };
 type Membro = { pessoa: string; admin: boolean; nome: string };
@@ -243,7 +244,7 @@ export default function TriboPage() {
           <div className="confirmados">
             {membros.map((m) => (
               <Link key={m.pessoa} href={`/u/${m.pessoa}`} className="quem-vai">
-                <span className="avatar">{m.nome.slice(0, 2).toUpperCase()}</span>
+                <Avatar nome={m.nome} seed={m.pessoa} />
                 {m.nome}
                 {m.admin && <span className="tag" style={{ marginLeft: "0.3rem" }}>comando</span>}
               </Link>

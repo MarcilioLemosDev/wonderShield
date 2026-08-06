@@ -10,11 +10,13 @@ import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
+import Avatar from "@/components/Avatar";
 
 type Profile = {
   handle: string;
   display_name: string;
   instagram: string | null;
+  sign: string | null;
   age: number | null;
   profession: string | null;
   bio: string | null;
@@ -133,7 +135,6 @@ export default function PerfilPage() {
   };
 
   const handle = profile?.handle ?? session?.handle ?? "";
-  const initials = (profile?.display_name ?? session?.displayName ?? "OP").slice(0, 2).toUpperCase();
 
   return (
     <div className="stack">
@@ -151,7 +152,11 @@ export default function PerfilPage() {
 
       <div className="card">
         <div className="profile-head">
-          <span className="avatar">{initials}</span>
+          <Avatar
+            nome={profile?.display_name ?? session?.displayName}
+            seed={session?.handle ?? profile?.display_name}
+            sign={profile?.sign}
+          />
           <div className="profile-id">
             <div className="name">{profile?.display_name ?? session?.displayName}</div>
             <a

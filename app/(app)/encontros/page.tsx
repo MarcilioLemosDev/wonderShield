@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
+import Avatar from "@/components/Avatar";
 
 type Encontro = {
   id: string;
@@ -363,7 +364,7 @@ export default function EncontrosPage() {
                   ) : (
                     quemVai(e.id).map((p) => (
                       <Link key={p.id} href={`/u/${p.id}`} className="quem-vai">
-                        <span className="avatar">{p.nome.slice(0, 2).toUpperCase()}</span>
+                        <Avatar nome={p.nome} seed={p.id} />
                         {p.id === meuId ? "você" : p.nome}
                       </Link>
                     ))
