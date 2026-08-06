@@ -732,6 +732,24 @@ table td { font-size: 14.5px; }
   margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px solid var(--line-soft);
 }
 
+/* ============================================================================
+   Tribos — diretório de grupos e página da tribo
+   ============================================================================ */
+.tribo-card-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+.tribo-card-nome {
+  font-family: var(--serif-display); font-weight: 400; font-size: 20px;
+  color: var(--ink-hi); letter-spacing: -0.01em; text-decoration: none;
+}
+.tribo-card-nome:hover { color: var(--blue); }
+.tribo-card-desc { margin-top: 0.4rem; line-height: 1.5; color: var(--ink); }
+.tribo-card-acao { flex-shrink: 0; }
+
+.tribo-cabeca { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.tribo-titulo {
+  font-family: var(--serif-display); font-weight: 400; font-size: 26px;
+  color: var(--ink-hi); letter-spacing: -0.015em; line-height: 1.1;
+}
+
 /* no celular, a lista some quando uma conversa está aberta */
 @media (max-width: 720px) {
   .dm { grid-template-columns: 1fr; min-height: calc(100vh - 170px); }

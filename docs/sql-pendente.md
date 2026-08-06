@@ -51,3 +51,18 @@ RLS (só os dois participantes leem/escrevem), bloqueio da conta invisível,
 > Cole `supabase/migrations/0023_dm.sql` inteiro no SQL Editor. Depende de
 > `is_member()` e `bloqueia_conta_invisivel()` — já existentes. Ao final:
 > `notify pgrst, 'reload schema';`
+
+---
+
+## Sprint 5 · Tribos viram grupos — `0024_grupos.sql`
+
+Adiciona `tribos.permite_pedido` (a porta do grupo), cria `tribo_pedidos`
+(pedidos de entrada, um por par), RLS (quem manda na tribo e o próprio veem;
+só pede por si, sendo membro, fora da tribo e se a porta está aberta; bloqueio
+da conta invisível), e a RPC `aprovar_pedido()` (entra na tribo e o pedido some,
+atômico). Realtime em `tribo_pedidos`.
+
+> Cole `supabase/migrations/0024_grupos.sql` inteiro no SQL Editor. Depende de
+> `tribos`/`tribo_membros` (0016), `manda_na_tribo()`, `na_tribo()`,
+> `is_member()` e `bloqueia_conta_invisivel()` — já existentes. Ao final:
+> `notify pgrst, 'reload schema';`
