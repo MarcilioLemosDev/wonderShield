@@ -5,10 +5,12 @@
 // depender dele. Cada tribo ganha uma sala de conversa.
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 
+import Link from "next/link";
+
 import { getSupabase } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 
-type Tribo = { id: string; nome: string; descricao: string | null; city: string | null };
+type Tribo = { id: string; nome: string; descricao: string | null; city: string | null; permite_pedido: boolean };
 type Membro = { tribo_id: string; pessoa: string; admin: boolean };
 type Pessoa = { id: string; display_name: string };
 
@@ -22,13 +24,14 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [cidade, setCidade] = useState("");
+  const [permitePedido, setPermitePedido] = useState(true);
   const [aAdicionar, setAAdicionar] = useState<Record<string, string>>({});
 
   const carregar = useCallback(async () => {
     const supabase = getSupabase();
     if (!supabase) return;
     const [t, m] = await Promise.all([
-      supabase.from("tribos").select("id, nome, descricao, city").order("nome"),
+      supabase.from("tribos").select("id, nome, descricao, city, permite_pedido").order("nome"),
       supabase.from("tribo_membros").select("tribo_id, pessoa, admin"),
     ]);
     setTribos((t.data ?? []) as Tribo[]);
@@ -54,11 +57,13 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
         nome: nome.trim(),
         descricao: descricao.trim() || null,
         city: cidade || null,
+        permite_pedido: permitePedido,
       });
       if (error) return setErro(error.message);
       setNome("");
       setDescricao("");
       setCidade("");
+      setPermitePedido(true);
       await carregar();
     } finally {
       setOcupado(false);
@@ -110,6 +115,18 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
     }
   };
 
+  const alternarPorta = async (t: Tribo) => {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    setOcupado(true);
+    try {
+      await supabase.from("tribos").update({ permite_pedido: !t.permite_pedido }).eq("id", t.id);
+      await carregar();
+    } finally {
+      setOcupado(false);
+    }
+  };
+
   const apagar = async (t: Tribo) => {
     if (!window.confirm(`Apagar a tribo "${t.nome}"? A conversa dela some junto.`)) return;
     const supabase = getSupabase();
@@ -154,6 +171,15 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
             placeholder="do que essa tribo trata"
           />
         </div>
+        <label className="row" style={{ gap: "0.5rem", cursor: "pointer", fontSize: 14 }}>
+          <input
+            type="checkbox"
+            checked={permitePedido}
+            onChange={(e) => setPermitePedido(e.target.checked)}
+            style={{ width: "auto" }}
+          />
+          Aceita pedidos pra entrar (senão, só por convite)
+        </label>
         <button className="btn btn-primary btn-sm" type="submit" disabled={ocupado}>
           Criar tribo
         </button>
@@ -181,6 +207,9 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
                   )}
                 </div>
                 <div className="row" style={{ gap: "0.4rem" }}>
+                  <Link href={`/tribos/${t.id}`} className="btn btn-sm">
+                    Abrir
+                  </Link>
                   <button className="btn btn-sm" onClick={() => setAberta(aberto ? null : t.id)}>
                     {aberto ? "Fechar" : "Gerenciar"}
                   </button>
@@ -192,6 +221,14 @@ export default function Tribos({ pessoas }: { pessoas: Pessoa[] }) {
 
               {aberto && (
                 <div className="stack" style={{ gap: "0.5rem", marginTop: "0.7rem" }}>
+                  <div className="row between" style={{ flexWrap: "wrap", gap: "0.4rem" }}>
+                    <span className="muted" style={{ fontSize: 13.5 }}>
+                      Porta: {t.permite_pedido ? "aberta a pedidos" : "só por convite"}
+                    </span>
+                    <button className="btn btn-sm" disabled={ocupado} onClick={() => alternarPorta(t)}>
+                      {t.permite_pedido ? "Fechar porta" : "Abrir porta"}
+                    </button>
+                  </div>
                   <div className="row" style={{ gap: "0.4rem", flexWrap: "wrap" }}>
                     <select
                       value={aAdicionar[t.id] ?? ""}

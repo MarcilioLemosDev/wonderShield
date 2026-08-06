@@ -39,6 +39,13 @@ const Icone = {
       <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
     </svg>
   ),
+  tribos: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M2 20a7 7 0 0 1 14 0" />
+      <path d="M16 5.5a3 3 0 0 1 0 5.4M22 20a7 7 0 0 0-4.5-6.5" />
+    </svg>
+  ),
   admin: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3 4 6.5v5c0 4.6 3.4 8.9 8 9.5 4.6-.6 8-4.9 8-9.5v-5Z" />
@@ -50,6 +57,7 @@ const Icone = {
 const NAV = [
   { href: "/feed", label: "Feed", curto: "Feed", ico: Icone.feed },
   { href: "/chat", label: "Bate-papo", curto: "Papo", ico: Icone.chat },
+  { href: "/tribos", label: "Tribos", curto: "Tribos", ico: Icone.tribos },
   { href: "/encontros", label: "Encontros", curto: "Encontros", ico: Icone.encontros },
   { href: "/rede", label: "Rede", curto: "Rede", ico: Icone.rede },
   { href: "/perfil", label: "Meu perfil", curto: "Perfil", ico: Icone.perfil },
@@ -61,6 +69,7 @@ const ADMIN_NAV = [{ href: "/admin", label: "Acesso admin", curto: "Admin", ico:
 const TITLES: Record<string, string> = {
   "/feed": "Feed",
   "/chat": "Bate-papo",
+  "/tribos": "Tribos",
   "/encontros": "Encontros",
   "/rede": "Rede",
   "/perfil": "Meu perfil",
