@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (ready && session) router.replace("/chat");
+    if (ready && session) router.replace("/feed");
   }, [ready, session, router]);
 
   const submit = async (e: FormEvent) => {
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setBusy(true);
     const result = await signIn(email, password);
     setBusy(false);
-    if (result.ok) router.replace("/chat");
+    if (result.ok) router.replace("/feed");
     else setError(result.error ?? "Falha ao entrar.");
   };
 
