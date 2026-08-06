@@ -11,6 +11,7 @@ import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 import FeedEscopo from "@/components/FeedEscopo";
 
 function nomeDoEscopo(scope: string, tribos: { id: string; nome: string }[]): string {
+  if (scope === "oficial") return "Mural oficial";
   if (scope === "geral") return "Rede toda";
   if (scope.startsWith("tribo:")) {
     return tribos.find((t) => t.id === scope.slice(6))?.nome ?? "Tribo";
@@ -55,7 +56,10 @@ export default function FeedPage() {
   }, []);
 
   const escopos = useMemo(() => {
-    const base = [{ valor: "geral", nome: "Geral" }];
+    const base = [
+      { valor: "oficial", nome: "Oficial" },
+      { valor: "geral", nome: "Geral" },
+    ];
     if (minhaCidade) base.push({ valor: minhaCidade, nome: nomeDaCidade(minhaCidade) ?? "Cidade" });
     // além da minha cidade, deixo escolher qualquer cidade da rede
     for (const c of CIDADES) if (c.valor !== minhaCidade) base.push({ valor: c.valor, nome: c.nome });
@@ -81,7 +85,7 @@ export default function FeedPage() {
           {escopos.map((s) => (
             <button
               key={s.valor}
-              className={`chip${escopo === s.valor ? " ativo" : ""}${s.valor.startsWith("tribo:") ? " tribo" : ""}`}
+              className={`chip${escopo === s.valor ? " ativo" : ""}${s.valor.startsWith("tribo:") ? " tribo" : ""}${s.valor === "oficial" ? " oficial" : ""}`}
               onClick={() => setEscopo(s.valor)}
             >
               {s.nome}
@@ -97,6 +101,7 @@ export default function FeedPage() {
         meuId={meuId}
         meuNome={session?.displayName ?? "membro"}
         ehAdmin={!!ehAdmin}
+        podePublicar={escopo === "oficial" ? !!ehAdmin : true}
       />
     </div>
   );

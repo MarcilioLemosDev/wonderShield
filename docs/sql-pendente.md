@@ -81,3 +81,14 @@ selo `selar_denuncia()` e realtime.
 > `bloqueia_conta_invisivel()` e `profiles_select`** — rode depois de todas as
 > anteriores (0019–0024), para não sobrescrever versão mais nova. Ao final:
 > `notify pgrst, 'reload schema';`
+
+---
+
+## Sprint 8 · Mural oficial — `0026_mural_oficial.sql`
+
+**Reexecuta `posts_insert`** para o escopo `'oficial'`: todo membro lê, só a
+administração publica. O resto do feed continua igual.
+
+> Cole `supabase/migrations/0026_mural_oficial.sql` no SQL Editor. **Roda depois
+> da 0020** (é a mesma policy, com a regra a mais). A busca global (S8) não pede
+> nada no Supabase. Ao final: `notify pgrst, 'reload schema';`
