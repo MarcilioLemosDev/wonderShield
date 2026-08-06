@@ -8,6 +8,7 @@ import Link from "next/link";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { CIDADES, nomeDaCidade } from "@/lib/cidades";
 import { nomeDoSigno, simboloDoSigno } from "@/lib/estelar";
+import Avatar from "@/components/Avatar";
 
 type Pessoa = {
   id: string;
@@ -129,9 +130,7 @@ export default function RedePage() {
         <div className="pessoas">
           {lista.map((p) => (
             <Link key={p.id} href={`/u/${p.id}`} className="pessoa">
-              <span className="avatar">
-                {(p.display_name ?? "??").slice(0, 2).toUpperCase()}
-              </span>
+              <Avatar nome={p.display_name} seed={p.id} sign={p.sign} />
               <span style={{ minWidth: 0 }}>
                 <span className="nome">{p.display_name}</span>
                 <span className="sub">

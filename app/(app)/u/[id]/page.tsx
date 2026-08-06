@@ -11,6 +11,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { nomeDaCidade } from "@/lib/cidades";
 import { nomeDoSigno, simboloDoSigno, nomeDoRelacionamento } from "@/lib/estelar";
 import Denunciar from "@/components/Denunciar";
+import Avatar from "@/components/Avatar";
 
 type Profile = {
   id: string;
@@ -84,8 +85,6 @@ export default function PerfilPublicoPage() {
   }
   if (!profile) return <div className="card muted">Carregando…</div>;
 
-  const initials = (profile.display_name ?? "OP").slice(0, 2).toUpperCase();
-
   return (
     <div className="stack">
       <button className="btn btn-sm" style={{ alignSelf: "flex-start" }} onClick={() => router.back()}>
@@ -94,7 +93,7 @@ export default function PerfilPublicoPage() {
 
       <div className="card">
         <div className="profile-head">
-          <span className="avatar">{initials}</span>
+          <Avatar nome={profile.display_name} seed={profile.id} sign={profile.sign} />
           <div className="profile-id">
             <div className="name">{profile.display_name}</div>
             <div className="at">

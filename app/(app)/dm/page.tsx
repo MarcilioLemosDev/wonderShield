@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import Avatar from "@/components/Avatar";
 
 type Thread = { id: string; user_a: string; user_b: string; last_at: string };
 type Msg = { id: string; thread_id: string; sender: string; body: string; read: boolean; created_at: string };
@@ -179,7 +180,7 @@ export default function DmPage() {
               className={`dm-conversa${aberta === t.id ? " ativa" : ""}`}
               onClick={() => setAberta(t.id)}
             >
-              <span className="avatar">{nome.slice(0, 2).toUpperCase()}</span>
+              <Avatar nome={nome} seed={id} />
               <span className="dm-conversa-nome">{nome}</span>
               {n > 0 && <span className="dm-nao-lida">{n}</span>}
             </button>

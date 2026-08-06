@@ -9,6 +9,7 @@ import Link from "next/link";
 import { getSupabase } from "@/lib/supabase";
 import { REACOES, emojiDe } from "@/lib/reacoes";
 import Denunciar from "@/components/Denunciar";
+import Avatar from "@/components/Avatar";
 
 export type Post = {
   id: string;
@@ -179,7 +180,7 @@ export default function PostCard({
     <article className="post">
       <header className="post-topo">
         <Link href={`/u/${post.author}`} className="post-autor">
-          <span className="avatar">{(post.author_name ?? "??").slice(0, 2).toUpperCase()}</span>
+          <Avatar nome={post.author_name} seed={post.author} />
           <span>
             <span className="nome">{post.author_name}</span>
             <span className="quando">
