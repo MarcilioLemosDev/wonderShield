@@ -409,6 +409,10 @@ table td { font-size: 14.5px; }
   content: ""; width: 5px; height: 5px; border-radius: 50%;
   background: var(--cyan); flex-shrink: 0;
 }
+/* aba do mural oficial: uma estrela, o recado da casa */
+.chip.oficial::before { content: "★"; font-size: 11px; line-height: 1; color: var(--amber); }
+.chip.oficial.ativo { border-color: var(--amber); background: rgba(255, 176, 32, 0.12); }
+.chip.oficial.ativo::before { color: var(--amber); }
 
 .chip .qtd { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .chip.ativo .qtd { color: var(--blue); }
@@ -772,6 +776,10 @@ table td { font-size: 14.5px; }
   padding: 1.4rem;
 }
 .suspensa-card { width: min(440px, 100%); text-align: left; }
+
+/* resultado de post na busca */
+.busca-post { padding: 0.6rem 0.7rem; border: 1px solid var(--line-soft); border-radius: var(--r); background: rgba(255, 255, 255, 0.015); }
+.busca-trecho { margin-top: 0.3rem; line-height: 1.5; color: var(--ink); white-space: pre-wrap; word-break: break-word; }
 
 /* no celular, a lista some quando uma conversa está aberta */
 @media (max-width: 720px) {

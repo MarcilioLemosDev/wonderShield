@@ -133,7 +133,9 @@ export default function FeedEscopo({
 
       {!posts && <div className="card muted">Carregando…</div>}
       {posts && posts.length === 0 && (
-        <div className="card muted">Nada em {escopoNome} ainda. Seja o primeiro a publicar.</div>
+        <div className="card muted">
+          Nada em {escopoNome} ainda.{podePublicar ? " Seja o primeiro a publicar." : ""}
+        </div>
       )}
 
       {posts?.map((p) => (
