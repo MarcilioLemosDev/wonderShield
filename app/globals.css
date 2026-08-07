@@ -803,7 +803,9 @@ table td { font-size: 14.5px; }
 
   .topbar {
     position: sticky; top: 0; z-index: 30;
-    padding: 0.7rem 1rem; gap: 0.8rem;
+    /* no app instalado (iOS), a barra de status fica por cima: reserva o topo */
+    padding: calc(0.7rem + env(safe-area-inset-top, 0px)) 1rem 0.7rem;
+    gap: 0.8rem;
   }
   .topbar h1 { font-size: 17px; text-align: right; }
   .topbar-brand { display: block; font-size: 17px; flex-shrink: 0; }
