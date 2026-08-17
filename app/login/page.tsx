@@ -3,7 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-import { useAuth } from "@/lib/auth";
+import { useAuth, MOCK_ATIVO } from "@/lib/auth";
 
 export default function LoginPage() {
   const { signIn, session, ready } = useAuth();
@@ -36,6 +36,14 @@ export default function LoginPage() {
           </div>
           <div className="tg">Sem anúncios. Só quem foi convidado.</div>
         </div>
+        {/* Sem backend, qualquer senha entra. Dizer isso na cara evita que um
+            preview seja confundido com a rede de verdade. */}
+        {MOCK_ATIVO && (
+          <div className="auth-error" style={{ background: "transparent" }}>
+            <b>Modo demonstração</b> — sem banco conectado. Qualquer senha entra e nada é
+            salvo.
+          </div>
+        )}
         <form className="auth-form" onSubmit={submit}>
           <div className="field">
             <label>@ do Instagram</label>

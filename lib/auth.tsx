@@ -29,6 +29,17 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const STORAGE_KEY = "wondershield.session";
 
+// O modo mock existe para o preview navegar sem backend — e nele QUALQUER
+// credencial não-vazia entra. Em produção isso seria uma porta destrancada, então
+// ali ele é proibido: sem Supabase, a rede fica fechada e nenhuma sessão é
+// fabricada. O build nem deveria chegar nesse estado (ver next.config.mjs), mas
+// esta guarda existe porque uma porta não se defende com uma tranca só.
+const MOCK_PERMITIDO = process.env.NODE_ENV !== "production";
+
+// Verdadeiro quando o app está rodando sem backend. A interface usa isto para
+// avisar, em vez de deixar o mock passar por rede de verdade.
+export const MOCK_ATIVO = !isSupabaseConfigured && MOCK_PERMITIDO;
+
 // Deriva a sessão a partir do usuário do Supabase. handle e nome vêm do perfil;
 // o papel vem da função my_role(), não da coluna — a leitura de profiles.role é
 // revogada para que um membro não consiga listar quem são os administradores.
@@ -116,6 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     // --- modo mock (sem backend) ---
+    // Em produção não há mock: sem Supabase a rede está fechada, e uma sessão
+    // guardada no navegador não vale como acesso.
+    if (!MOCK_PERMITIDO) {
+      setReady(true);
+      return;
+    }
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setSession(JSON.parse(raw) as Session);
@@ -143,7 +161,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     }
 
-    // MOCK: qualquer credencial não-vazia entra.
+    // Daqui para baixo é o mock, onde qualquer credencial não-vazia entra. Em
+    // produção ele não existe: recusar é a única resposta segura.
+    if (!MOCK_PERMITIDO) {
+      return {
+        ok: false,
+        error: "Rede indisponível: falta configuração no servidor. Avise a administração.",
+      };
+    }
+
     const handle = email.split("@")[0] || "operador";
     const next: Session = {
       email: email.trim(),

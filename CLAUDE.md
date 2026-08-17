@@ -52,9 +52,18 @@ Está **publicado** (Vercel, PWA instalável). **Não há usuários reais ainda.
 
 ## Armadilhas conhecidas
 
-- **Modo mock:** sem `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY`, `lib/auth.tsx` cai
-  num mock onde **qualquer credencial não-vazia entra**. Em produção isso é uma
-  porta destrancada. Precisa de portão (ver plano, movimento 3).
+- **Modo mock — fechado, com duas trancas.** Sem as chaves do Supabase o app cai
+  num mock onde qualquer credencial entra (é o que mantém o preview navegável).
+  Em produção isso seria uma porta destrancada, então:
+  1. `next.config.mjs` **quebra o build de produção** se faltar
+     `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` ou
+     `SUPABASE_SERVICE_ROLE_KEY`. A checagem vive lá porque o Next carrega os
+     `.env` antes de ler a config — um script anterior ao build não veria o
+     `.env.local`.
+  2. `lib/auth.tsx` guarda o runtime: com `NODE_ENV=production` o mock não
+     fabrica sessão nem aceita sessão guardada no navegador; `signIn` recusa.
+  Em desenvolvimento o mock segue livre, e a tela de login avisa
+  (`MOCK_ATIVO` → "Modo demonstração").
 - **`alter publication supabase_realtime add table` não é idempotente** — repetir
   derruba o script inteiro, porque o SQL Editor roda tudo numa transação. Use o
   bloco condicional de `supabase/rodadas/`.
